@@ -12,6 +12,17 @@
 
 using namespace std;
 
+struct CornerEdge
+{
+    int vertexA, vertexB, corner;
+
+    bool checkDouble(CornerEdge b){
+        return (b.vertexA == vertexB) && (b.vertexB == vertexA);
+    }
+
+    bool operator<(const CornerEdge &cEdge) { return (vertexA < cEdge.vertexA) || ((vertexA == cEdge.vertexA) && (vertexB < cEdge.vertexB)); }
+    bool operator==(const CornerEdge &cEdge) { return (vertexA == cEdge.vertexA) && (vertexB == cEdge.vertexB); }
+};
 
 class TriangleMesh
 {
@@ -30,9 +41,6 @@ public:
 
 	void render(QOpenGLFunctions &gl);
 
-    //Calculate CornerTable
-    void buildCornerTable();
-
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
 	void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -40,9 +48,15 @@ private:
 private:
 	vector<QVector3D> vertices;
 	vector<int> triangles;
-    vector<int> corners;
 
-	QOpenGLVertexArrayObject vao;
+    vector<CornerEdge> tableCornerEdges;
+    vector<int> tableCornerVertices;
+
+    void buildCornerTable();
+    vector<int> GetVertexNeighboors();
+    void GaussianCurvature();
+
+    QOpenGLVertexArrayObject vao;
 	QOpenGLBuffer vboVertices, vboNormals, eboTriangles;
 
 };

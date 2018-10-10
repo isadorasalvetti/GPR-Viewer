@@ -4,16 +4,6 @@
 
 using namespace std;
 
-
-struct CornerEdge
-{
-	int vertexA, vertexB, corner;
-
-	bool operator<(const CornerEdge &cEdge) { return (vertexA < cEdge.vertexA) || ((vertexA == cEdge.vertexA) && (vertexB < cEdge.vertexB)); }
-	bool operator==(const CornerEdge &cEdge) { return (vertexA == cEdge.vertexA) && (vertexB == cEdge.vertexB); }
-};
-
-
 int next(int corner)
 {
 	return 3 * (corner / 3) + (corner + 1) % 3;
@@ -78,6 +68,8 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 	vector<unsigned int> perFaceTriangles;
 
 	buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
+
+    buildCornerTable();
 
 	program->bind();
 
@@ -190,27 +182,47 @@ void TriangleMesh::buildCornerTable(){
     */
 
     int NoTris = triangles.size()/3;
-    vector<vector<int>> tableEdgeCorners;
+
+    tableCornerEdges.resize(NoTris);
+    tableCornerVertices.resize(vertices.size());
 
     for (int i = 0; i < NoTris; i++){ //(1)
-        for (int j = 0; j < 3; j++){ //Check each edge of the triangle.
-            int o = j-1; int p = j+1;
-            if (p > 3) p = 0; if (o < 0) o = 2;
+            int v0 = triangles[i*3 + 0];
+            int v1 = triangles[i*3 + 1];
+            int v2 = triangles[i*3 + 2];
+            CornerEdge edgeCorner; edgeCorner.corner = v0; edgeCorner.vertexA = v1; edgeCorner.vertexB = v2;
+            tableCornerEdges[i] = edgeCorner;
 
-            int v0 = i*3 + j;
-            int v1 = min(i*3 + o, i*3 + p);
-            int v2 = max(i*3 + o, i*3 + p);
-
-            vector<int> edgeCorner;
-            edgeCorner.push_back(v1); edgeCorner.push_back(v2); edgeCorner.push_back(v0);
-
-            for (int k = 0; k < tableEdgeCorners.size(); k++){
-
+            /*
+            if (tableCornerEdges.size()==0) {tableCornerEdges[0] = edgeCorner);} //add the first pair.
+            for (int k = 0; k < tableCornerEdges.size(); k++){
+                //check if edge has been visited
+                if (tableCornerEdges[k] == edgeCorner || tableCornerEdges[k].checkDouble(edgeCorner)) {
+                    break;
+                }
+                //remove pair if not
+                else if (k == tableCornerEdges.size()-1) {
+                    tableCornerEdges[i] = (edgeCorner);
+                }
             }
-        }
+       }
+      */
 
     }
+    std::cout<<"Corner table generated"<<std::endl;
+}
 
+vector<int> TriangleMesh::GetVertexNeighboors(){
+    vector<int> Neighboors;
+    //for ()
+}
+
+void TriangleMesh::GaussianCurvature(){
+    vector<float> perVertCurvature(vertices.size());
+    //k = 2pi - sum(anglei) / area.
+    for (int i = 0; i < vertices.size(); i++){
+        vector<float> angle;
+    }
 }
 
 
