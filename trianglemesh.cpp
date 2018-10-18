@@ -181,32 +181,31 @@ void TriangleMesh::buildCornerTable(){
      * Assign the pair as corners. (3)
     */
 
-    int NoTris = triangles.size()/3;
+    unsigned int NoTris = static_cast<unsigned int>(triangles.size()/3);
 
-    tableCornerEdges.resize(NoTris);
-    tableCornerVertices.resize(vertices.size());
 
-    for (int i = 0; i < NoTris; i++){ //(1)
-            int v0 = triangles[i*3 + 0];
-            int v1 = triangles[i*3 + 1];
-            int v2 = triangles[i*3 + 2];
-            CornerEdge edgeCorner; edgeCorner.corner = v0; edgeCorner.vertexA = v1; edgeCorner.vertexB = v2;
-            tableCornerEdges[i] = edgeCorner;
+    for (unsigned int i = 0; i < NoTris*3; i++){ //(1)
 
-            /*
-            if (tableCornerEdges.size()==0) {tableCornerEdges[0] = edgeCorner);} //add the first pair.
-            for (int k = 0; k < tableCornerEdges.size(); k++){
-                //check if edge has been visited
-                if (tableCornerEdges[k] == edgeCorner || tableCornerEdges[k].checkDouble(edgeCorner)) {
-                    break;
-                }
-                //remove pair if not
-                else if (k == tableCornerEdges.size()-1) {
-                    tableCornerEdges[i] = (edgeCorner);
-                }
-            }
-       }
-      */
+        //Adjacent vertices
+        int v0 = triangles[i + 0];
+        int v1 = triangles[i + 1];
+        int v2 = triangles[i + 2];
+
+        //Edges
+        //i
+        int e1Min = std::min(v0, v1);
+        int e1Max = std::max(v0, v1);
+        //i + 1
+        int e2Min = std::min(v1, v2);
+        int e2Max = std::max(v1, v2);
+        //i + 2
+        int e3Min = std::min(v0, v2);
+        int e3Max = std::max(v0, v2);
+
+        //Build Corner Table
+        corners.push_back(CornerEntry(e1Min, e1Max, i));
+        corners.push_back(CornerEntry(e2Min, e2Max, i+1));
+        corners.push_back(CornerEntry(e3Min, e3Max, i+2));
 
     }
     std::cout<<"Corner table generated"<<std::endl;

@@ -12,16 +12,10 @@
 
 using namespace std;
 
-struct CornerEdge
+struct CornerEntry
 {
-    int vertexA, vertexB, corner;
-
-    bool checkDouble(CornerEdge b){
-        return (b.vertexA == vertexB) && (b.vertexB == vertexA);
-    }
-
-    bool operator<(const CornerEdge &cEdge) { return (vertexA < cEdge.vertexA) || ((vertexA == cEdge.vertexA) && (vertexB < cEdge.vertexB)); }
-    bool operator==(const CornerEdge &cEdge) { return (vertexA == cEdge.vertexA) && (vertexB == cEdge.vertexB); }
+    int edgeMin, edgeMax, cornerVertex; //corner face = index
+    CornerEntry(int eM, int eX, int v);
 };
 
 class TriangleMesh
@@ -41,6 +35,8 @@ public:
 
 	void render(QOpenGLFunctions &gl);
 
+    vector<CornerEntry> corners;
+
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
 	void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -48,9 +44,6 @@ private:
 private:
 	vector<QVector3D> vertices;
 	vector<int> triangles;
-
-    vector<CornerEdge> tableCornerEdges;
-    vector<int> tableCornerVertices;
 
     void buildCornerTable();
     vector<int> GetVertexNeighboors();
