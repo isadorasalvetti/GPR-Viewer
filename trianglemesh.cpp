@@ -1,8 +1,11 @@
 #include <iostream>
+#include <math.h>
 #include "trianglemesh.h"
 
 
 using namespace std;
+
+const float PI = 3.1415;
 
 int next(int corner)
 {
@@ -14,6 +17,10 @@ int previous(int corner)
 	return 3 * (corner / 3) + (corner + 2) % 3;
 }
 
+bool CornerEdge::Compare(CornerEdge e1, CornerEdge e2){
+    bool result = e1.edgeMin == e2.edgeMin && e1.edgeMax == e2.edgeMax;
+    return result;
+}
 
 TriangleMesh::TriangleMesh() : vboVertices(QOpenGLBuffer::VertexBuffer),
 										 vboNormals(QOpenGLBuffer::VertexBuffer),
@@ -70,6 +77,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 	buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
 
     buildCornerTable();
+    GaussianCurvature();
 
 	program->bind();
 
@@ -131,7 +139,7 @@ void TriangleMesh::render(QOpenGLFunctions &gl)
 {
 	vao.bind();
 	eboTriangles.bind();
-	gl.glDrawElements(GL_TRIANGLES, triangles.size(), GL_UNSIGNED_INT, 0);
+    gl.glDrawElements(GL_TRIANGLES, triangles.size(), GL_UNSIGNED_INT, nullptr);
 	vao.release();
 }
 
@@ -176,20 +184,16 @@ void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVecto
 //Corner table calculation
 void TriangleMesh::buildCornerTable(){
 
-    /* Get/ store edge-corner data. (1)
-     * If current edge has already been visited, remove the pair. (2)
-     * Assign the pair as corners. (3)
-    */
-
+    // Get/ store edge-corner, vertex-corner data.
     unsigned int NoTris = static_cast<unsigned int>(triangles.size()/3);
+    cornerVertex.resize(vertices.size());
 
-
-    for (unsigned int i = 0; i < NoTris*3; i++){ //(1)
-
-        //Adjacent vertices
-        int v0 = triangles[i + 0];
-        int v1 = triangles[i + 1];
-        int v2 = triangles[i + 2];
+    vector<CornerEdge> allCornersEdges;
+    for (unsigned int i = 0; i < NoTris; i++){ //(1)
+        //Triangle vertices
+        int v0 = triangles[i*3 + 0];
+        int v1 = triangles[i*3 + 1];
+        int v2 = triangles[i*3 + 2];
 
         //Edges
         //i
@@ -202,25 +206,75 @@ void TriangleMesh::buildCornerTable(){
         int e3Min = std::min(v0, v2);
         int e3Max = std::max(v0, v2);
 
-        //Build Corner Table
-        corners.push_back(CornerEntry(e1Min, e1Max, i));
-        corners.push_back(CornerEntry(e2Min, e2Max, i+1));
-        corners.push_back(CornerEntry(e3Min, e3Max, i+2));
+        //Assign Corner to Edges
+        allCornersEdges.push_back(CornerEdge(e1Min, e1Max, i));
+        allCornersEdges.push_back(CornerEdge(e2Min, e2Max, i+1));
+        allCornersEdges.push_back(CornerEdge(e3Min, e3Max, i+2));
+
+        //Assign Corner to Vertex
+        cornerVertex[triangles[i*3]]=i;
+        cornerVertex[triangles[i*3+1]]=i+1;
+        cornerVertex[triangles[i*3+2]]=i+2;
+
+        //Build Corner table
+        cornersTable.resize(allCornersEdges.size());
+        for (int i =0; i < allCornersEdges.size(); i++){
+            CornerEdge e1 = allCornersEdges[i];
+            for (int j =0; j < allCornersEdges.size(); j++){
+                CornerEdge e2 = allCornersEdges[j];
+                if (i!=j && CornerEdge::Compare(e1, e2)){
+                    cornersTable[i] = e2;
+                    cornersTable[j] = e1;
+                }
+            }
+
+        }
+
+
 
     }
+
     std::cout<<"Corner table generated"<<std::endl;
 }
 
-vector<int> TriangleMesh::GetVertexNeighboors(){
-    vector<int> Neighboors;
-    //for ()
+vector<int> TriangleMesh::GetVertexNeighboors(int vert){
+    vector<int> neighboors;
+    //get corner of this vertex
+    int vertCorner = cornerVertex[vert];
+    int nextCorner = next(vertCorner);
+    //find vertices surrounding this corner
+    while(true){
+        int nextCorner = next(vertCorner);
+        //if (nextCorner == -1) break;
+        if (std::find(neighboors.begin(), neighboors.end(), nextCorner) == neighboors.end()) break;
+        neighboors.push_back(nextCorner);
+    }
+    return neighboors;
 }
 
 void TriangleMesh::GaussianCurvature(){
     vector<float> perVertCurvature(vertices.size());
+    float maxCurvature = -9999999999;
+    float minCurvature = 9999999999;
+
     //k = 2pi - sum(anglei) / area.
     for (int i = 0; i < vertices.size(); i++){
-        vector<float> angle;
+        //get neighboorhood of the vertex
+        vector<int> neighboors = GetVertexNeighboors(i);
+        //get sum of neighbooring angles
+        float angle = 0.0;
+        for (int j=0; j < neighboors.size(); j++){
+            QVector3D v1;
+            QVector3D v2;
+            float a = acos(QVector3D::dotProduct(v1, v2));
+            angle += a;
+        }
+
+        float curvature = 2*PI - angle;
+        if (curvature > maxCurvature) maxCurvature = curvature;
+        if (curvature < minCurvature) minCurvature = curvature;
+        perVertCurvature[i] = curvature;
+
     }
 }
 

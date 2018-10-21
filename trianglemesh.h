@@ -12,10 +12,12 @@
 
 using namespace std;
 
-struct CornerEntry
+struct CornerEdge
 {
-    int edgeMin, edgeMax, cornerVertex; //corner face = index
-    CornerEntry(int eM, int eX, int v);
+    int edgeMin, edgeMax, cornerVertex;
+    CornerEdge(int eM, int eX, int v): edgeMin(eM), edgeMax(eX), cornerVertex(v){}
+    CornerEdge(){}
+    static bool Compare(CornerEdge e1, CornerEdge e2);
 };
 
 class TriangleMesh
@@ -35,7 +37,8 @@ public:
 
 	void render(QOpenGLFunctions &gl);
 
-    vector<CornerEntry> corners;
+    vector<CornerEdge> cornersTable;
+    vector<int> cornerVertex;
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -46,7 +49,7 @@ private:
 	vector<int> triangles;
 
     void buildCornerTable();
-    vector<int> GetVertexNeighboors();
+    vector<int> GetVertexNeighboors(int vert);
     void GaussianCurvature();
 
     QOpenGLVertexArrayObject vao;
