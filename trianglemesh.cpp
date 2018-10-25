@@ -1,4 +1,4 @@
-#include <iostream>
+ #include <iostream>
 #include <math.h>
 #include "trianglemesh.h"
 
@@ -71,13 +71,14 @@ void TriangleMesh::buildCube()
 
 bool TriangleMesh::init(QOpenGLShaderProgram *program)
 {
-	vector<QVector3D> replicatedVertices, normals;
+    vector<QVector3D> replicatedVertices, normals, colors;
 	vector<unsigned int> perFaceTriangles;
 
-	buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
+    buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
 
     buildCornerTable();
-    GaussianCurvature();
+    float min, max;
+    GetColors(colors, GaussianCurvature(min, max), min, max);
 
 	program->bind();
 
@@ -88,15 +89,25 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 	else
 		return false;
 
-	vboVertices.destroy();
-	vboVertices.create();
-	if(vboVertices.isCreated())
-		vboVertices.bind();
-	else
-		return false;
-	vboVertices.setUsagePattern(QOpenGLBuffer::StaticDraw);
-	program->enableAttributeArray(0);
-	program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
+    vboVertices.destroy();
+    vboVertices.create();
+    if(vboVertices.isCreated())
+        vboVertices.bind();
+    else
+        return false;
+    vboVertices.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    program->enableAttributeArray(0);
+    program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
+
+    vboColors.destroy();
+    vboColors.create();
+    if(vboColors.isCreated())
+        vboColors.bind();
+    else
+        return false;
+    vboColors.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    program->enableAttributeArray(2);
+    program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
 
 	vboNormals.destroy();
 	vboNormals.create();
@@ -116,7 +127,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 		return false;
 	eboTriangles.setUsagePattern(QOpenGLBuffer::StaticDraw);
 
-	fillVBOs(replicatedVertices, normals, perFaceTriangles);
+    fillVBOs(replicatedVertices, normals, perFaceTriangles, colors);
 
 	vao.release();
 	program->release();
@@ -128,6 +139,7 @@ void TriangleMesh::destroy()
 {
 	vao.destroy();
 	vboVertices.destroy();
+    vboColors.destroy();
 	vboNormals.destroy();
 	eboTriangles.destroy();
 
@@ -165,11 +177,15 @@ void TriangleMesh::buildReplicatedVertices(vector<QVector3D> &replicatedVertices
 	}
 }
 
-void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles)
+void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles, vector<QVector3D> vertColors)
 {
 	vboVertices.bind();
 	vboVertices.allocate(&replicatedVertices[0], 3 * sizeof(float) * replicatedVertices.size());
 	vboVertices.release();
+
+    vboColors.bind();
+    vboColors.allocate(&vertColors[0], 3 * sizeof(float) * vertColors.size());
+    vboColors.release();
 
 	vboNormals.bind();
 	vboNormals.allocate(&normals[0], 3 * sizeof(float) * normals.size());
@@ -230,8 +246,6 @@ void TriangleMesh::buildCornerTable(){
 
         }
 
-
-
     }
 
     std::cout<<"Corner table generated"<<std::endl;
@@ -241,18 +255,19 @@ vector<int> TriangleMesh::GetVertexNeighboors(int vert){
     vector<int> neighboors;
     //get corner of this vertex
     int vertCorner = cornerVertex[vert];
-    int nextCorner = next(vertCorner);
+    int initialCorner = next(vertCorner);
+    int nextCorner = initialCorner;
     //find vertices surrounding this corner
     while(true){
-        int nextCorner = next(vertCorner);
-        //if (nextCorner == -1) break;
+        int nextCorner = previous(nextCorner);
+        if (nextCorner == -1) break; //non manifold mesh
         if (std::find(neighboors.begin(), neighboors.end(), nextCorner) == neighboors.end()) break;
         neighboors.push_back(nextCorner);
     }
     return neighboors;
 }
 
-void TriangleMesh::GaussianCurvature(){
+vector<float> TriangleMesh::GaussianCurvature(float &min, float &max){
     vector<float> perVertCurvature(vertices.size());
     float maxCurvature = -9999999999;
     float minCurvature = 9999999999;
@@ -274,7 +289,17 @@ void TriangleMesh::GaussianCurvature(){
         if (curvature > maxCurvature) maxCurvature = curvature;
         if (curvature < minCurvature) minCurvature = curvature;
         perVertCurvature[i] = curvature;
+    }
+    min = minCurvature; max = maxCurvature;
+    return perVertCurvature;
+}
 
+void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float> vertCurvature, float min, float max){
+    vertColors.resize(vertCurvature.size());
+    for (unsigned int i = 0; i<vertColors.size(); i++){
+        if (vertCurvature[i] > 0) vertColors[i] = QVector3D(vertCurvature[i]/max, 0, 0);
+        else if (vertCurvature[i] < 0) vertColors[i] = QVector3D(vertCurvature[i]/-min, 0, 0);
+        else vertColors[i] = QVector3D(0, 0, 0);
     }
 }
 
