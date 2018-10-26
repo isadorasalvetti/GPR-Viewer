@@ -5,7 +5,7 @@
 
 using namespace std;
 
-const float PI = 3.1415;
+const float PI = 3.1415f;
 
 int next(int corner)
 {
@@ -73,12 +73,14 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 {
     vector<QVector3D> replicatedVertices, normals, colors;
 	vector<unsigned int> perFaceTriangles;
+    vector<float> curvatures;
 
     buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
 
     buildCornerTable();
     float min, max;
-    GetColors(colors, GaussianCurvature(min, max), min, max);
+    GaussianCurvature(curvatures, min, max);
+    GetColors(colors, curvatures, min, max);
 
 	program->bind();
 
@@ -107,7 +109,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
         return false;
     vboColors.setUsagePattern(QOpenGLBuffer::StaticDraw);
     program->enableAttributeArray(2);
-    program->setAttributeBuffer(0, GL_FLOAT, 0, 3, 0);
+    program->setAttributeBuffer(2, GL_FLOAT, 0, 3, 0);
 
 	vboNormals.destroy();
 	vboNormals.create();
@@ -223,82 +225,90 @@ void TriangleMesh::buildCornerTable(){
         int e3Max = std::max(v0, v2);
 
         //Assign Corner to Edges
-        allCornersEdges.push_back(CornerEdge(e1Min, e1Max, i));
-        allCornersEdges.push_back(CornerEdge(e2Min, e2Max, i+1));
-        allCornersEdges.push_back(CornerEdge(e3Min, e3Max, i+2));
+        allCornersEdges.push_back(CornerEdge(e1Min, e1Max, i*3 + 0));
+        allCornersEdges.push_back(CornerEdge(e3Min, e3Max, i*3 + 1));
+        allCornersEdges.push_back(CornerEdge(e2Min, e2Max, i*3 + 2));
 
-        //Assign Corner to Vertex
-        cornerVertex[triangles[i*3]]=i;
-        cornerVertex[triangles[i*3+1]]=i+1;
-        cornerVertex[triangles[i*3+2]]=i+2;
-
-        //Build Corner table
-        cornersTable.resize(allCornersEdges.size());
-        for (int i =0; i < allCornersEdges.size(); i++){
-            CornerEdge e1 = allCornersEdges[i];
-            for (int j =0; j < allCornersEdges.size(); j++){
-                CornerEdge e2 = allCornersEdges[j];
-                if (i!=j && CornerEdge::Compare(e1, e2)){
-                    cornersTable[i] = e2;
-                    cornersTable[j] = e1;
-                }
-            }
-
+        //Assign Coner from Vertex
+        cornerVertex[v0]=i*3+0;
+        cornerVertex[v1]=i*3+1;
+        cornerVertex[v2]=i*3+2;
         }
 
-    }
+    //Build Corner table
+    cornersTable.resize(allCornersEdges.size());
+    for (int i =0; i < allCornersEdges.size(); i++){
+        CornerEdge e1 = allCornersEdges[i];
+        cornersTable[i] = -1;
 
+        for (int j =0; j < allCornersEdges.size(); j++){
+            CornerEdge e2 = allCornersEdges[j];
+
+            if (i!=j && CornerEdge::Compare(e1, e2)){
+                cornersTable[i] = e2.cornerVertex;
+                cornersTable[j] = e1.cornerVertex;
+                break;
+                }
+            }
+        }
     std::cout<<"Corner table generated"<<std::endl;
 }
 
-vector<int> TriangleMesh::GetVertexNeighboors(int vert){
+vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
     vector<int> neighboors;
+
     //get corner of this vertex
-    int vertCorner = cornerVertex[vert];
-    int initialCorner = next(vertCorner);
+    int initialCorner = next(cornerVertex[vert]);
     int nextCorner = initialCorner;
+
     //find vertices surrounding this corner
     while(true){
-        int nextCorner = previous(nextCorner);
-        if (nextCorner == -1) break; //non manifold mesh
-        if (std::find(neighboors.begin(), neighboors.end(), nextCorner) == neighboors.end()) break;
         neighboors.push_back(nextCorner);
+        nextCorner = previous(cornersTable[nextCorner]);
+        if (nextCorner == -1) {break; qDebug("Non manifold mesh!");}//non manifold mesh
+        if (nextCorner == initialCorner) break; //corner already in neighboors, end of loop
     }
     return neighboors;
 }
 
-vector<float> TriangleMesh::GaussianCurvature(float &min, float &max){
+void TriangleMesh::GaussianCurvature(vector<float>&curvatures, float &min, float &max){
     vector<float> perVertCurvature(vertices.size());
     float maxCurvature = -9999999999;
     float minCurvature = 9999999999;
 
-    //k = 2pi - sum(anglei) / area.
-    for (int i = 0; i < vertices.size(); i++){
+    //kg = 2pi - sum(angle) / area.
+    for (unsigned int i = 0; i < vertices.size(); i++){
         //get neighboorhood of the vertex
         vector<int> neighboors = GetVertexNeighboors(i);
+        qDebug()<<QString::number(neighboors.size());
+
         //get sum of neighbooring angles
-        float angle = 0.0;
-        for (int j=0; j < neighboors.size(); j++){
-            QVector3D v1;
-            QVector3D v2;
+        float angle = 0;
+        float area = 0;
+        for (unsigned int j=0; j < neighboors.size()-1; j++){
+            QVector3D v1 = vertices[i] - vertices[triangles[neighboors[j]]];
+            QVector3D v2 = vertices[i] - vertices[triangles[neighboors[j+1]]];
+            float ar = QVector3D::crossProduct(v1, v2).length()/(2*3);
+            v1.normalize(); v2.normalize();
             float a = acos(QVector3D::dotProduct(v1, v2));
             angle += a;
+            area += ar;
         }
 
-        float curvature = 2*PI - angle;
+        float curvature = (2*PI - angle)/area;
         if (curvature > maxCurvature) maxCurvature = curvature;
         if (curvature < minCurvature) minCurvature = curvature;
         perVertCurvature[i] = curvature;
     }
     min = minCurvature; max = maxCurvature;
-    return perVertCurvature;
+    curvatures = perVertCurvature;
 }
 
 void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float> vertCurvature, float min, float max){
     vertColors.resize(vertCurvature.size());
     for (unsigned int i = 0; i<vertColors.size(); i++){
-        if (vertCurvature[i] > 0) vertColors[i] = QVector3D(vertCurvature[i]/max, 0, 0);
-        else if (vertCurvature[i] < 0) vertColors[i] = QVector3D(vertCurvature[i]/-min, 0, 0);
+        if (vertCurvature[i] > 0) vertColors[i] = QVector3D((vertCurvature[i]-min)/max, 0, 0);
+        else if (vertCurvature[i] < 0) vertColors[i] = QVector3D(0, vertCurvature[i]+min/-min, 0);
         else vertColors[i] = QVector3D(0, 0, 0);
     }
 }

@@ -37,7 +37,7 @@ public:
 
 	void render(QOpenGLFunctions &gl);
 
-    vector<CornerEdge> cornersTable;
+    vector<int> cornersTable;
     vector<int> cornerVertex;
 
 private:
@@ -49,8 +49,8 @@ private:
 	vector<int> triangles;
 
     void buildCornerTable();
-    vector<int> GetVertexNeighboors(int vert);
-    vector<float> GaussianCurvature(float &min, float &max);
+    vector<int> GetVertexNeighboors(unsigned int vert);
+    void GaussianCurvature(vector<float> &curvatures, float &min, float &max);
     void GetColors(vector<QVector3D> &vertColors, vector<float> vertCurvature, float min, float max);
 
     QOpenGLVertexArrayObject vao;
