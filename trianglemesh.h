@@ -42,7 +42,7 @@ public:
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
-    void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles, vector<QVector3D> vertColors);
+    void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles, vector<QVector3D> &vertColors);
 
 private:
 	vector<QVector3D> vertices;
@@ -51,6 +51,7 @@ private:
     void buildCornerTable();
     vector<int> GetVertexNeighboors(unsigned int vert);
     void GaussianCurvature(vector<float> &curvatures, float &min, float &max);
+    void MeanCurvature(vector<float>&curvatures, float &min, float &max);
     void GetColors(vector<QVector3D> &vertColors, vector<float> vertCurvature, float min, float max);
 
     QOpenGLVertexArrayObject vao;

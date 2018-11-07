@@ -18,7 +18,7 @@ int previous(int corner)
 }
 
 bool CornerEdge::Compare(CornerEdge e1, CornerEdge e2){
-    bool result = e1.edgeMin == e2.edgeMin && e1.edgeMax == e2.edgeMax;
+    bool result = (e1.edgeMin == e2.edgeMin && e1.edgeMax == e2.edgeMax);
     return result;
 }
 
@@ -179,7 +179,7 @@ void TriangleMesh::buildReplicatedVertices(vector<QVector3D> &replicatedVertices
 	}
 }
 
-void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles, vector<QVector3D> vertColors)
+void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles, vector<QVector3D> &vertColors)
 {
 	vboVertices.bind();
 	vboVertices.allocate(&replicatedVertices[0], 3 * sizeof(float) * replicatedVertices.size());
@@ -225,9 +225,9 @@ void TriangleMesh::buildCornerTable(){
         int e3Max = std::max(v0, v2);
 
         //Assign Corner to Edges
-        allCornersEdges.push_back(CornerEdge(e1Min, e1Max, i*3 + 0));
+        allCornersEdges.push_back(CornerEdge(e2Min, e2Max, i*3 + 0));
         allCornersEdges.push_back(CornerEdge(e3Min, e3Max, i*3 + 1));
-        allCornersEdges.push_back(CornerEdge(e2Min, e2Max, i*3 + 2));
+        allCornersEdges.push_back(CornerEdge(e1Min, e1Max, i*3 + 2));
 
         //Assign Coner from Vertex
         cornerVertex[v0]=i*3+0;
@@ -265,7 +265,7 @@ vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
     while(true){
         neighboors.push_back(nextCorner);
         nextCorner = previous(cornersTable[nextCorner]);
-        if (nextCorner == -1) {break; qDebug("Non manifold mesh!");}//non manifold mesh
+        if (nextCorner == -1) {break; qDebug("Non manifold mesh!");} //non manifold mesh
         if (nextCorner == initialCorner) break; //corner already in neighboors, end of loop
     }
     return neighboors;
@@ -284,11 +284,15 @@ void TriangleMesh::GaussianCurvature(vector<float>&curvatures, float &min, float
 
         //get sum of neighbooring angles
         float angle = 0;
+
+        //get area of triangle
         float area = 0;
         for (unsigned int j=0; j < neighboors.size()-1; j++){
+            qDebug()<<triangles[neighboors[j]];
+            if (j == neighboors.size()-2) qDebug()<<triangles[neighboors[j+1]];
             QVector3D v1 = vertices[i] - vertices[triangles[neighboors[j]]];
             QVector3D v2 = vertices[i] - vertices[triangles[neighboors[j+1]]];
-            float ar = QVector3D::crossProduct(v1, v2).length()/(2*3);
+            float ar = QVector3D::crossProduct(v1, v2).length()/2;
             v1.normalize(); v2.normalize();
             float a = acos(QVector3D::dotProduct(v1, v2));
             angle += a;
@@ -302,6 +306,27 @@ void TriangleMesh::GaussianCurvature(vector<float>&curvatures, float &min, float
     }
     min = minCurvature; max = maxCurvature;
     curvatures = perVertCurvature;
+}
+
+void TriangleMesh::MeanCurvature(vector<float>&curvatures, float &min, float &max){
+    float maxCurvature = -9999999999;
+    float minCurvature = 9999999999;
+
+    //kh = abs(1/2A * sum(cot(alpha)+cot(beta))*(vi-vj)).
+    for (unsigned int i = 0; i < vertices.size(); i++){
+        vector<int> neighboors = GetVertexNeighboors(i);
+        for (unsigned int j=1; j < neighboors.size()-1; j++){
+            QVector3D v1 = vertices[triangles[neighboors[j-1]]];
+            QVector3D v2 = vertices[triangles[neighboors[j]]];
+            QVector3D v3 = vertices[triangles[neighboors[j+1]]];
+            v1.normalize(); v2.normalize(); v3.normalize();
+            float alpha = QVector3D::dotProduct(v2-vertices[i], v2-v3); //(cosine)
+            float beta = QVector3D::dotProduct(v3-vertices[i], v2-v1);
+            //convert to cot().
+
+        }
+    }
+
 }
 
 void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float> vertCurvature, float min, float max){
