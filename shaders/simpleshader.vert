@@ -14,8 +14,8 @@ uniform mat3 normalMatrix;
 
 void main()
 {
-        fragColor = color;
-	gl_Position = projection * modelview * vec4(position, 1.0);
-	fragNormal = normalMatrix * normal;
+    fragColor = color;
+    gl_Position = projection * modelview * vec4(position, 1.0);
+    fragNormal = normalMatrix * normal;
 }
 

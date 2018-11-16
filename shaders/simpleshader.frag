@@ -12,8 +12,8 @@ uniform bool bLighting;
 
 void main()
 {
-	if(bLighting)
-                finalColor = vec4(fragColor * normalize(fragNormal).z, 1);
-	else
-                finalColor = vec4(fragColor, 1);
+    if(bLighting)
+            finalColor = vec4(fragColor * normalize(fragNormal).z, 1);
+    else
+            finalColor = vec4(fragColor, 1);
 }
