@@ -174,12 +174,12 @@ void TriangleMesh::render(QOpenGLFunctions &gl)
 }
 
 void TriangleMesh::buildReplicatedColors(vector<QVector3D> currColors){
+    repColors.clear();
     for(unsigned int i=0; i<triangles.size(); i+=3)    {
         repColors.push_back(currColors[triangles[i]]);
         repColors.push_back(currColors[triangles[i+1]]);
         repColors.push_back(currColors[triangles[i+2]]);
     }
-    int stop = 0;
 }
 
 void TriangleMesh::buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles)
@@ -309,18 +309,19 @@ vector<float> TriangleMesh::GaussianCurvature(vector<float>&curvatures, float &m
 
         //get area of triangle
         float area = 0;
-        for (unsigned int j=0; j < neighboors.size()-1; j++){
-            qDebug()<<triangles[neighboors[j]];
-            if (j == neighboors.size()-2) qDebug()<<triangles[neighboors[j+1]];
-            QVector3D v1 = vertices[i] - vertices[triangles[neighboors[j]]];
-            QVector3D v2 = vertices[i] - vertices[triangles[neighboors[j+1]]];
+        qDebug()<<"ggrrrargahrj";
+        for (unsigned int j=0; j < neighboors.size(); j++){
+            //qDebug()<<triangles[neighboors[j]];
+            //if (j == neighboors.size()-2) qDebug()<<triangles[neighboors[j+1]];
+            QVector3D v1 = - vertices[i] + vertices[triangles[neighboors[j]]];
+            QVector3D v2 = - vertices[i] + vertices[triangles[neighboors[(j+1) % neighboors.size()]]];
             float ar = QVector3D::crossProduct(v1, v2).length()/2;
             v1.normalize(); v2.normalize();
             float a = acos(QVector3D::dotProduct(v1, v2));
+            qDebug()<<a;
             angle += a;
             area += ar;
         }
-
         float curvature = (2*PI - angle)/area;
         perVertCurvature[i] = curvature;
         qDebug()<<curvature;
@@ -351,10 +352,13 @@ void TriangleMesh::MeanCurvature(vector<float>&curvatures, float &min, float &ma
 
 void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures, pair<QVector3D, QVector3D> boundingBox){
     vertColors.resize(vertCurvatures.size());
-    //float sz = (boundingBox.first - boundingBox.second).lengthSquared();
+    float minCurv = *std::min_element(vertCurvatures.cbegin(), vertCurvatures.cend());
+    float maxCurv = *std::max_element(vertCurvatures.cbegin(), vertCurvatures.cend());
+    float maxi = std::max(abs(minCurv), abs(maxCurv));
+    float sz = (boundingBox.first - boundingBox.second).length();
     for (unsigned int i = 0; i<vertColors.size(); i++){
-        if (vertCurvatures[i] > 0) vertColors[i] = QVector3D(vertCurvatures[i]/(2*PI), 0, 0);
-        else if (vertCurvatures[i] < 0) vertColors[i] = QVector3D(0, -vertCurvatures[i]/(2*PI), 0);
+        if (vertCurvatures[i] > 0) vertColors[i] = QVector3D(vertCurvatures[i]/maxi, 0, 0);
+        else if (vertCurvatures[i] < 0) vertColors[i] = QVector3D(0, -vertCurvatures[i]/maxi, 0);
         else vertColors[i] = QVector3D(0, 0, 0);
     }
 }
