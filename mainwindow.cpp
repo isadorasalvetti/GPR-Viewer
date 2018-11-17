@@ -31,3 +31,8 @@ void MainWindow::on_action_Open_triggered()
 
 	ui->openGLWidget->loadMesh(filename);
 }
+
+void MainWindow::on_GaussianCButton_released(){
+    ui->openGLWidget->mesh.DisplayGaussianCurvature();
+    ui->openGLWidget->update();
+}

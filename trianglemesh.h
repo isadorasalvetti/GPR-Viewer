@@ -25,8 +25,6 @@ class TriangleMesh
 
 public:
 	TriangleMesh();
-
-public:
 	void addVertex(const QVector3D &position);
 	void addTriangle(int v0, int v1, int v2);
 
@@ -40,10 +38,14 @@ public:
     vector<int> cornersTable;
     vector<int> cornerVertex;
 
+public:
+    void DisplayGaussianCurvature();
+
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
     void buildReplicatedColors(vector<QVector3D> currColors);
-    void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles, vector<QVector3D> &vertColors);
+    void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
+    void updateColors();
 
 private:
     vector<QVector3D> vertices;
@@ -53,7 +55,7 @@ private:
 
     void buildCornerTable();
     vector<int> GetVertexNeighboors(unsigned int vert);
-    vector<float> GaussianCurvature(vector<float> &curvatures, float &min, float &max);
+    vector<float> GaussianCurvature();
     void MeanCurvature(vector<float>&curvatures, float &min, float &max);
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures, pair<QVector3D, QVector3D> boundingBox);
 

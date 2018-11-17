@@ -54,6 +54,43 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Display Curvature</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="GaussianCButton">
+          <property name="text">
+           <string>Gaussian</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="MeanCButton">
+          <property name="text">
+           <string>Mean</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
          <widget class="QCheckBox" name="checkBoxFill">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -62,7 +99,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Fill Triangles</string>
+           <string>Normal Light</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -94,7 +131,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>25</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_File">

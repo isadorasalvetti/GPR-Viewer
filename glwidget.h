@@ -17,6 +17,8 @@ public:
 	void loadMesh(const QString &filename);
 	void setPolygonMode(bool bFill);
 
+    TriangleMesh mesh;
+
 protected:
 	void initializeGL();
 	void resizeGL(int w, int h);
@@ -35,7 +37,6 @@ private:
 	QPoint lastMousePos;
 
 	QOpenGLShaderProgram *program;
-	TriangleMesh mesh;
 
 };
 
