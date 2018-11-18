@@ -36,3 +36,8 @@ void MainWindow::on_GaussianCButton_released(){
     ui->openGLWidget->mesh.DisplayGaussianCurvature();
     ui->openGLWidget->update();
 }
+
+void MainWindow::on_MeanCButton_released(){
+    ui->openGLWidget->mesh.DisplayMeanCurvature();
+    ui->openGLWidget->update();
+}

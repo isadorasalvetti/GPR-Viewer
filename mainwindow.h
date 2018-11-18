@@ -24,7 +24,7 @@ private slots:
 
     //**** Curvature Buttons
     void on_GaussianCButton_released();
-    //void on_MeanCButton_Clicked();
+    void on_MeanCButton_released();
 
 private:
 	Ui::MainWindow *ui;

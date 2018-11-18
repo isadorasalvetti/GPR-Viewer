@@ -7,6 +7,10 @@ using namespace std;
 
 const float PI = 3.1415f;
 
+//*****************************************
+// CornerEdges
+//*****************************************
+
 int next(int corner)
 {
 	return 3 * (corner / 3) + (corner + 1) % 3;
@@ -16,6 +20,15 @@ int previous(int corner)
 {
 	return 3 * (corner / 3) + (corner + 2) % 3;
 }
+
+bool CornerEdge::Compare(CornerEdge e1, CornerEdge e2){
+    bool result = (e1.edgeMin == e2.edgeMin && e1.edgeMax == e2.edgeMax);
+    return result;
+}
+
+//*****************************************
+//Utilities
+//*****************************************
 
 pair<QVector3D, QVector3D> getBoundingBox(vector<QVector3D> &verts){
     float vertCount = verts.size();
@@ -31,10 +44,13 @@ pair<QVector3D, QVector3D> getBoundingBox(vector<QVector3D> &verts){
     return pair<QVector3D, QVector3D>(QVector3D(x0, y0, z0), QVector3D(x1, y1, z1));
 }
 
-bool CornerEdge::Compare(CornerEdge e1, CornerEdge e2){
-    bool result = (e1.edgeMin == e2.edgeMin && e1.edgeMax == e2.edgeMax);
-    return result;
+float cosineToCotangent(float cos){
+   return 1/tan(acos(cos));
 }
+
+//*****************************************
+//Init / load and destroy
+//*****************************************
 
 TriangleMesh::TriangleMesh() : vboVertices(QOpenGLBuffer::VertexBuffer),
 										 vboNormals(QOpenGLBuffer::VertexBuffer),
@@ -162,6 +178,8 @@ void TriangleMesh::destroy()
 }
 
 //*****************************************
+// Display buttons
+//*****************************************
 
 void TriangleMesh::DisplayGaussianCurvature(){
 
@@ -169,13 +187,23 @@ void TriangleMesh::DisplayGaussianCurvature(){
     vector<float> curvatures;
 
     curvatures = GaussianCurvature();
-    boundingBox = getBoundingBox(vertices);
-    GetColors(colors, curvatures, boundingBox);
+    GetColors(colors, curvatures);
     buildReplicatedColors(colors);
     updateColors();
-
 }
 
+void TriangleMesh::DisplayMeanCurvature(){
+    vector<QVector3D> colors;
+    vector<float> curvatures;
+
+    curvatures = MeanCurvature();
+    GetColors(colors, curvatures);
+    buildReplicatedColors(colors);
+    updateColors();
+}
+
+//*****************************************
+// Render
 //*****************************************
 
 void TriangleMesh::render(QOpenGLFunctions &gl)
@@ -185,6 +213,10 @@ void TriangleMesh::render(QOpenGLFunctions &gl)
     gl.glDrawElements(GL_TRIANGLES, triangles.size(), GL_UNSIGNED_INT, nullptr);
 	vao.release();
 }
+
+//****************************************
+// Building and filling buffers
+//*****************************************
 
 void TriangleMesh::buildReplicatedColors(vector<QVector3D> currColors){
     repColors.clear();
@@ -241,11 +273,12 @@ void TriangleMesh::updateColors()
     vboColors.bind();
     vboColors.allocate(&repColors[0], 3 * sizeof(float) * repColors.size());
     vboColors.release();
-
 }
 
+//*****************************************
+//Corner table and neighborhood
+//*****************************************
 
-//Corner table calculation
 void TriangleMesh::buildCornerTable(){
 
     // Get/ store edge-corner, vertex-corner data.
@@ -317,6 +350,10 @@ vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
     return neighboors;
 }
 
+//*****************************************
+// L1 - Curvatures
+//*****************************************
+
 vector<float> TriangleMesh::GaussianCurvature(){
     vector<float> perVertCurvature(vertices.size());
 
@@ -341,41 +378,63 @@ vector<float> TriangleMesh::GaussianCurvature(){
             angle += a;
             area += ar;
         }
-        float curvature = (2*PI - angle)/area;
+        float curvature = (2*PI - angle);
         perVertCurvature[i] = curvature;
         //qDebug()<<curvature;
     }
     return perVertCurvature;
 }
 
-float cosineToCotangent(float cos){
-   return 1/tan(1-cos*cos);
-}
+vector<float> TriangleMesh::MeanCurvature(){
+    //kh = len(1/2A * sum(cot(alpha)+cot(beta))*(vi-vj)).
+    vector<float> perVertCurvature(vertices.size());
 
-void TriangleMesh::MeanCurvature(vector<float>&curvatures, float &min, float &max){
-    //kh = abs(1/2A * sum(cot(alpha)+cot(beta))*(vi-vj)).
     for (unsigned int i = 0; i < vertices.size(); i++){
         vector<int> neighboors = GetVertexNeighboors(i);
-        for (unsigned int j=1; j < neighboors.size()-1; j++){
-            QVector3D v1 = vertices[triangles[neighboors[j-1]]];
-            QVector3D v2 = vertices[triangles[neighboors[j]]];
-            QVector3D v3 = vertices[triangles[neighboors[j+1]]];
-            v1.normalize(); v2.normalize(); v3.normalize();
-            float alpha = QVector3D::dotProduct(v2-vertices[i], v2-v3); //(cosine)
-            float beta = QVector3D::dotProduct(v3-vertices[i], v2-v1);
-            //float sum = (cosineToCotangent(alpha)+cosineToCotangent(beta))*(v1-v2 - v3-v2);
+        QVector3D sum = QVector3D(0,0,0);
+        float area = 0;
+        QVector3D v0 = vertices[i];
+        for (unsigned int j=0; j < neighboors.size(); j++){
+            QVector3D vmin = vertices[triangles[neighboors[j]]];
+            QVector3D vi = vertices[triangles[neighboors[(j+1) % neighboors.size()]]];
+            QVector3D vplus = vertices[triangles[neighboors[(j+2) % neighboors.size()]]];
 
+            QVector3D iEdge = vplus - v0; QVector3D iEdge2 = vplus - vi;
+            QVector3D jEdge = vmin - v0; QVector3D jEdge2 = vmin - vi;
+
+            iEdge.normalize(); jEdge.normalize();
+            iEdge2.normalize(); jEdge2.normalize();
+
+            float ar = QVector3D::crossProduct(v0, vmin).length()/2;
+            float alpha = QVector3D::dotProduct(iEdge, iEdge2);
+            float beta = QVector3D::dotProduct(jEdge, jEdge2);
+            sum += (cosineToCotangent(alpha)+cosineToCotangent(beta)) * (v0-vi);
+            area += ar;
         }
+        perVertCurvature[i] = (1/(2*area)) * sum.length();
+    }
+    return perVertCurvature;
+
+}
+
+//*****************************************
+// L2 - Smoothing
+//*****************************************
+
+QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
+    if (uniform){
+        vector<int> neighboorhood = GetVertexNeighboors(v);
+        float weight = 1/vertices.size();
+    }else{
+
     }
 }
 
-void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures, pair<QVector3D, QVector3D> boundingBox){
+void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures){
     vertColors.resize(vertCurvatures.size());
     float minCurv = *std::min_element(vertCurvatures.cbegin(), vertCurvatures.cend());
     float maxCurv = *std::max_element(vertCurvatures.cbegin(), vertCurvatures.cend());
     float maxi = std::max(abs(minCurv), abs(maxCurv));
-    qDebug()<<maxi;
-    float sz = (boundingBox.first - boundingBox.second).length();
     for (unsigned int i = 0; i<vertColors.size(); i++){
         if (vertCurvatures[i] > 0) vertColors[i] = QVector3D(vertCurvatures[i]/maxi, 0, 0);
         else if (vertCurvatures[i] < 0) vertColors[i] = QVector3D(0, -vertCurvatures[i]/maxi, 0);

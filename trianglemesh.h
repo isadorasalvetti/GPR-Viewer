@@ -40,6 +40,7 @@ public:
 
 public:
     void DisplayGaussianCurvature();
+    void DisplayMeanCurvature();
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -55,9 +56,13 @@ private:
 
     void buildCornerTable();
     vector<int> GetVertexNeighboors(unsigned int vert);
+
     vector<float> GaussianCurvature();
-    void MeanCurvature(vector<float>&curvatures, float &min, float &max);
-    void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures, pair<QVector3D, QVector3D> boundingBox);
+    vector<float> MeanCurvature();
+
+    QVector3D ComputeLaplacian(int v, bool uniform);
+
+    void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 
     QOpenGLVertexArrayObject vao;
     QOpenGLBuffer vboVertices, vboNormals, vboColors, eboTriangles;
