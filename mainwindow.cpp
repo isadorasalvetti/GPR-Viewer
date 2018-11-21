@@ -41,3 +41,8 @@ void MainWindow::on_MeanCButton_released(){
     ui->openGLWidget->mesh.DisplayMeanCurvature();
     ui->openGLWidget->update();
 }
+
+void MainWindow::on_IteractiveSButton_released(){
+    ui->openGLWidget->mesh.IteractiveSmoothing(10);
+    ui->openGLWidget->update();
+}

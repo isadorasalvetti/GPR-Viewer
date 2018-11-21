@@ -108,7 +108,6 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program)
 
     buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
     buildCornerTable();
-    buildReplicatedColors(colors);
 
 	program->bind();
 
@@ -178,7 +177,7 @@ void TriangleMesh::destroy()
 }
 
 //*****************************************
-// Display buttons
+// Buttons
 //*****************************************
 
 void TriangleMesh::DisplayGaussianCurvature(){
@@ -188,8 +187,8 @@ void TriangleMesh::DisplayGaussianCurvature(){
 
     curvatures = GaussianCurvature();
     GetColors(colors, curvatures);
-    buildReplicatedColors(colors);
-    updateColors();
+    colors = buildReplicatedColors(colors);
+    updateColors(colors);
 }
 
 void TriangleMesh::DisplayMeanCurvature(){
@@ -198,8 +197,14 @@ void TriangleMesh::DisplayMeanCurvature(){
 
     curvatures = MeanCurvature();
     GetColors(colors, curvatures);
-    buildReplicatedColors(colors);
-    updateColors();
+    colors = buildReplicatedColors(colors);
+    updateColors(colors);
+}
+
+void TriangleMesh::IteractiveSmoothing(int nSteps){
+    for (int i = 0; i < nSteps; i++){
+        IteractiveSmoothingStep();
+    }
 }
 
 //*****************************************
@@ -218,13 +223,14 @@ void TriangleMesh::render(QOpenGLFunctions &gl)
 // Building and filling buffers
 //*****************************************
 
-void TriangleMesh::buildReplicatedColors(vector<QVector3D> currColors){
-    repColors.clear();
+vector<QVector3D> TriangleMesh::buildReplicatedColors(vector<QVector3D> currColors){
+    vector<QVector3D> repColors;
     for(unsigned int i=0; i<triangles.size(); i+=3)    {
         repColors.push_back(currColors[triangles[i]]);
         repColors.push_back(currColors[triangles[i+1]]);
         repColors.push_back(currColors[triangles[i+2]]);
     }
+    return repColors;
 }
 
 void TriangleMesh::buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles)
@@ -255,25 +261,33 @@ void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVecto
 	vboVertices.allocate(&replicatedVertices[0], 3 * sizeof(float) * replicatedVertices.size());
 	vboVertices.release();
 
-    vboColors.bind();
-    vboColors.allocate(&repColors[0], 3 * sizeof(float) * repColors.size());
-    vboColors.release();
+    vboNormals.bind();
+    vboNormals.allocate(&normals[0], 3 * sizeof(float) * normals.size());
+    vboNormals.release();
 
-	vboNormals.bind();
-	vboNormals.allocate(&normals[0], 3 * sizeof(float) * normals.size());
-	vboNormals.release();
+    vboColors.bind();
+    vboColors.allocate(&normals[0], 3 * sizeof(float) * normals.size());
+    vboColors.release();
 
 	eboTriangles.bind();
 	eboTriangles.allocate(&perFaceTriangles[0], sizeof(int) * perFaceTriangles.size());
 	eboTriangles.release();
 }
 
-void TriangleMesh::updateColors()
+void TriangleMesh::updateColors(vector<QVector3D> &newColors)
 {
     vboColors.bind();
-    vboColors.allocate(&repColors[0], 3 * sizeof(float) * repColors.size());
+    vboColors.allocate(&newColors[0], 3 * sizeof(float) * newColors.size());
     vboColors.release();
 }
+
+void TriangleMesh::updateVertices() {
+    vector<QVector3D> replicatedVertices, normals;
+    vector<unsigned int> perFaceTriangles;
+    buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
+    fillVBOs(replicatedVertices, normals, perFaceTriangles);
+}
+
 
 //*****************************************
 //Corner table and neighborhood
@@ -406,6 +420,7 @@ vector<float> TriangleMesh::MeanCurvature(){
             iEdge2.normalize(); jEdge2.normalize();
 
             float ar = QVector3D::crossProduct(v0, vmin).length()/2;
+
             float alpha = QVector3D::dotProduct(iEdge, iEdge2);
             float beta = QVector3D::dotProduct(jEdge, jEdge2);
             sum += (cosineToCotangent(alpha)+cosineToCotangent(beta)) * (v0-vi);
@@ -422,13 +437,41 @@ vector<float> TriangleMesh::MeanCurvature(){
 //*****************************************
 
 QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
+    //Returns Laplacian of vertex v
+    QVector3D Lv = QVector3D(0, 0, 0);
     if (uniform){
         vector<int> neighboorhood = GetVertexNeighboors(v);
-        float weight = 1/vertices.size();
-    }else{
+        float weight = 1/(float)vertices.size();
+        for (int i = 0; i < neighboorhood.size(); i++) Lv += weight*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
+        return Lv;
+    }
 
+    else {
+        vector<int> neighboorhood = GetVertexNeighboors(v);
+        for (int i = 0; i < neighboorhood.size(); i++){
+            QVector3D vn = vertices[v].normalized(); QVector3D vi = vertices[triangles[neighboorhood[i]]].normalized();
+            float weight = QVector3D::dotProduct(vn, vi);
+            Lv += weight*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
+        }
+        return Lv;
     }
 }
+
+void TriangleMesh::IteractiveSmoothingStep(){
+    vector<QVector3D> newVertices;
+    float g = 0.3; // g E [0, 0.7]
+    newVertices.resize(vertices.size());
+    for (int i = 0; i < vertices.size(); i++){
+        QVector3D Lv = ComputeLaplacian(i, true);
+        newVertices[i] = vertices[i] + g*Lv;
+    }
+    vertices = newVertices;
+    updateVertices();
+}
+
+//*****************************************
+//Colors
+//*****************************************
 
 void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures){
     vertColors.resize(vertCurvatures.size());
@@ -436,8 +479,8 @@ void TriangleMesh::GetColors(vector<QVector3D> &vertColors, vector<float>&vertCu
     float maxCurv = *std::max_element(vertCurvatures.cbegin(), vertCurvatures.cend());
     float maxi = std::max(abs(minCurv), abs(maxCurv));
     for (unsigned int i = 0; i<vertColors.size(); i++){
-        if (vertCurvatures[i] > 0) vertColors[i] = QVector3D(vertCurvatures[i]/maxi, 0, 0);
-        else if (vertCurvatures[i] < 0) vertColors[i] = QVector3D(0, -vertCurvatures[i]/maxi, 0);
+        if (vertCurvatures[i] > 0) vertColors[i] = QVector3D(sqrt(vertCurvatures[i]/maxi), 0, 0);
+        else if (vertCurvatures[i] < 0) vertColors[i] = QVector3D(0, sqrt(-vertCurvatures[i]/maxi), 0);
         else vertColors[i] = QVector3D(0, 0, 0);
     }
 }

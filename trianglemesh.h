@@ -41,16 +41,17 @@ public:
 public:
     void DisplayGaussianCurvature();
     void DisplayMeanCurvature();
+    void IteractiveSmoothing(int nSteps);
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
-    void buildReplicatedColors(vector<QVector3D> currColors);
+    vector<QVector3D> buildReplicatedColors(vector<QVector3D> currColors);
     void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
-    void updateColors();
+    void updateColors(vector<QVector3D> &newColors);
+    void updateVertices();
 
 private:
     vector<QVector3D> vertices;
-    vector<QVector3D> repColors;
 	vector<int> triangles;
     pair<QVector3D, QVector3D> boundingBox;
 
@@ -61,6 +62,7 @@ private:
     vector<float> MeanCurvature();
 
     QVector3D ComputeLaplacian(int v, bool uniform);
+    void IteractiveSmoothingStep();
 
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 
