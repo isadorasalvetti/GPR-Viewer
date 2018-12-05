@@ -1,12 +1,11 @@
-#ifndef VERTEXMATRIX_H
-#define VERTEXMATRIX_H
-
+#ifndef SMOOTHINGMATRIX_H
+#define SMOOTHINGMATRIX_H
 #include <QVector3D>
-#include "Eigen/Core/Matrix.h"
+#include <Eigen/Core>
 
 using namespace std;
 
-class VertexMatrix
+class SmoothingMatrix
 {
 private:
     Eigen::MatrixXf weightMatrix;
@@ -14,9 +13,9 @@ private:
     Eigen::MatrixXf resultMatrix;
 
 public:
-    VertexMatrix(int rows, int cols);
-    void addWeightRow(int row, int startCol, float[5] val);
+    SmoothingMatrix(int rows, int cols);
+    void addWeightRow(int row, int startCol, vector<float> val);
     void addVertex(int row, int col, float x, float y, float z);
 };
 
-#endif // VERTEXMATRIX_H
+#endif // SMOOTHINGMATRIX_H

@@ -493,7 +493,7 @@ void TriangleMesh::BiIteractiveSmoothingStep(){
 //*****************************************
 
 void TriangleMesh::buildSmoothingMatrix(){
-    VertexMatrix myMatrix(vertices.size(), vertices.size());
+    SmoothingMatrix myMatrix(vertices.size(), vertices.size());
     vector<bool> vertIsVariable(false);
     vector<float> rowWeights;
 
@@ -505,7 +505,7 @@ void TriangleMesh::buildSmoothingMatrix(){
     //Add weigths to matrix
     //TODO: add verification wether or not this vertex is constant.
     for (int i = 0; i < vertices.size()/3; i++){
-        vector<int> neighboorhood = GetVertexNeighboors(v);
+        vector<int> neighboorhood = GetVertexNeighboors(i*3);
         float weight = 1/(float)neighboorhood.size();
 
         //Create row of weights

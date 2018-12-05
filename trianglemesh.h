@@ -9,7 +9,7 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
-#include "vertexmatrix.h"
+#include "smoothingmatrix.h"
 
 
 using namespace std;
