@@ -15,6 +15,10 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
 
+private:
+    int intSteps;
+    int biIntSteps;
+
 private slots:
 	void on_action_Quit_triggered();
 
@@ -25,8 +29,13 @@ private slots:
     //**** Curvature Buttons
     void on_GaussianCButton_released();
     void on_MeanCButton_released();
+
     //**** Smoothing Buttons
     void on_IteractiveSButton_released();
+    void on_NSteps_valueChanged(int i);
+
+    void on_BiIteractiveSButton_released();
+    void on_BiNSteps_valueChanged(int i);
 
 private:
 	Ui::MainWindow *ui;

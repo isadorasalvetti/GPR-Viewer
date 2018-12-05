@@ -207,6 +207,12 @@ void TriangleMesh::IteractiveSmoothing(int nSteps){
     }
 }
 
+void TriangleMesh::BiIteractiveSmoothing(int nSteps){
+    for (int i = 0; i < nSteps; i++){
+        BiIteractiveSmoothingStep();
+    }
+}
+
 //*****************************************
 // Render
 //*****************************************
@@ -441,12 +447,12 @@ QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
     QVector3D Lv = QVector3D(0, 0, 0);
     if (uniform){
         vector<int> neighboorhood = GetVertexNeighboors(v);
-        float weight = 1/(float)vertices.size();
+        float weight = 1/(float)neighboorhood.size();
         for (int i = 0; i < neighboorhood.size(); i++) Lv += weight*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
         return Lv;
     }
 
-    else {
+    else { //CotangentWeights
         vector<int> neighboorhood = GetVertexNeighboors(v);
         for (int i = 0; i < neighboorhood.size(); i++){
             QVector3D vn = vertices[v].normalized(); QVector3D vi = vertices[triangles[neighboorhood[i]]].normalized();
@@ -468,6 +474,20 @@ void TriangleMesh::IteractiveSmoothingStep(){
     vertices = newVertices;
     updateVertices();
 }
+
+void TriangleMesh::BiIteractiveSmoothingStep(){
+    vector<QVector3D> newVertices;
+    float g = 0.3; // g E [0, 0.7]
+    newVertices.resize(vertices.size());
+    for (int i = 0; i < vertices.size(); i++){
+        vertices[i] = vertices[i] + g*ComputeLaplacian(i, true);
+        QVector3D Lv2 = ComputeLaplacian(i, true);
+        newVertices[i] = vertices[i] - g*Lv2;
+    }
+    vertices = newVertices;
+    updateVertices();
+}
+
 
 //*****************************************
 //Colors

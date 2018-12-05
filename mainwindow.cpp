@@ -32,6 +32,8 @@ void MainWindow::on_action_Open_triggered()
 	ui->openGLWidget->loadMesh(filename);
 }
 
+//Curvatures
+
 void MainWindow::on_GaussianCButton_released(){
     ui->openGLWidget->mesh.DisplayGaussianCurvature();
     ui->openGLWidget->update();
@@ -42,7 +44,22 @@ void MainWindow::on_MeanCButton_released(){
     ui->openGLWidget->update();
 }
 
+//Smoothing
+
 void MainWindow::on_IteractiveSButton_released(){
-    ui->openGLWidget->mesh.IteractiveSmoothing(10);
+    ui->openGLWidget->mesh.IteractiveSmoothing(intSteps);
     ui->openGLWidget->update();
+}
+
+void MainWindow::on_NSteps_valueChanged(int i){
+    intSteps = i;
+}
+
+void MainWindow::on_BiIteractiveSButton_released(){
+    ui->openGLWidget->mesh.BiIteractiveSmoothing(intSteps);
+    ui->openGLWidget->update();
+}
+
+void MainWindow::on_BiNSteps_valueChanged(int i){
+    biIntSteps = i;
 }

@@ -9,6 +9,8 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 
+#include "vertexmatrix.h"
+
 
 using namespace std;
 
@@ -42,6 +44,7 @@ public:
     void DisplayGaussianCurvature();
     void DisplayMeanCurvature();
     void IteractiveSmoothing(int nSteps);
+    void BiIteractiveSmoothing(int nSteps);
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -63,6 +66,7 @@ private:
 
     QVector3D ComputeLaplacian(int v, bool uniform);
     void IteractiveSmoothingStep();
+    void BiIteractiveSmoothingStep();
 
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 

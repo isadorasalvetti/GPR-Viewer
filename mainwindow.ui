@@ -98,11 +98,24 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="IteractiveSButton">
-          <property name="text">
-           <string>Iteractive</string>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetFixedSize</enum>
           </property>
-         </widget>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="IteractiveSButton">
+            <property name="text">
+             <string>Laplacian</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="NSteps"/>
+          </item>
+         </layout>
         </item>
         <item>
          <spacer name="verticalSpacer_2">

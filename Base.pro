@@ -11,11 +11,13 @@ INCLUDEPATH += .
 # Input
 HEADERS += glwidget.h mainwindow.h \
     trianglemesh.h \
-    plyreader.h
+    plyreader.h \
+    vertexmatrix.h
 FORMS += mainwindow.ui
 SOURCES += glwidget.cpp main.cpp mainwindow.cpp \
     trianglemesh.cpp \
-    plyreader.cpp
+    plyreader.cpp \
+    vertexmatrix.cpp
 
 DISTFILES += \
     shaders/simpleshader.vert \
