@@ -93,27 +93,79 @@
         <item>
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>Smoothing</string>
+           <string>Iteractive Smoothing</string>
           </property>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetFixedSize</enum>
+         <layout class="QFormLayout" name="formLayout">
+          <property name="horizontalSpacing">
+           <number>0</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>0</number>
           </property>
           <property name="topMargin">
            <number>0</number>
           </property>
-          <item>
+          <item row="1" column="1">
+           <widget class="QCheckBox" name="checkBox">
+            <property name="minimumSize">
+             <size>
+              <width>45</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::RightToLeft</enum>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+            <property name="tristate">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="font">
+             <font>
+              <family>Noto Sans [monotype]</family>
+              <pointsize>8</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Uniform weigth</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QSpinBox" name="NSteps">
+            <property name="value">
+             <number>20</number>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
            <widget class="QPushButton" name="IteractiveSButton">
             <property name="text">
              <string>Laplacian</string>
             </property>
            </widget>
           </item>
-          <item>
-           <widget class="QSpinBox" name="NSteps"/>
+          <item row="3" column="0">
+           <widget class="QPushButton" name="BiIteractiveSButton">
+            <property name="text">
+             <string>BiLaplacian</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="BiNSteps"/>
           </item>
          </layout>
         </item>

@@ -68,6 +68,8 @@ private:
     void IteractiveSmoothingStep();
     void BiIteractiveSmoothingStep();
 
+    void buildSmoothingMatrix();
+
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 
     QOpenGLVertexArrayObject vao;

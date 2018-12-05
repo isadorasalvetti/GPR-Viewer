@@ -456,7 +456,7 @@ QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
         vector<int> neighboorhood = GetVertexNeighboors(v);
         for (int i = 0; i < neighboorhood.size(); i++){
             QVector3D vn = vertices[v].normalized(); QVector3D vi = vertices[triangles[neighboorhood[i]]].normalized();
-            float weight = QVector3D::dotProduct(vn, vi);
+            float weight = QVector3D::dotProduct(vn, vi); //TODO!
             Lv += weight*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
         }
         return Lv;
@@ -487,6 +487,36 @@ void TriangleMesh::BiIteractiveSmoothingStep(){
     vertices = newVertices;
     updateVertices();
 }
+
+//*****************************************
+// L3 - GlobalSmoothing
+//*****************************************
+
+void TriangleMesh::buildSmoothingMatrix(){
+    VertexMatrix myMatrix(vertices.size(), vertices.size());
+    vector<bool> vertIsVariable(false);
+    vector<float> rowWeights;
+
+    //Select variable vertices
+    for (int i = 0; i < vertices.size()/3; i++){
+        if (i*3+1 > 0) vertIsVariable[i] = true; //variable condition
+    }
+
+    //Add weigths to matrix
+    //TODO: add verification wether or not this vertex is constant.
+    for (int i = 0; i < vertices.size()/3; i++){
+        vector<int> neighboorhood = GetVertexNeighboors(v);
+        float weight = 1/(float)neighboorhood.size();
+
+        //Create row of weights
+        rowWeights.push_back(-1);
+        for (int j = 0; j < neighboorhood.size(); j++)rowWeights.push_back(weight);
+    }
+}
+
+
+
+
 
 
 //*****************************************
