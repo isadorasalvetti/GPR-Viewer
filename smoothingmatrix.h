@@ -13,9 +13,10 @@ private:
     Eigen::MatrixXf resultMatrix;
 
 public:
-    SmoothingMatrix(int rows, int cols);
-    void addWeightRow(int row, int startCol, vector<float> val);
+    SmoothingMatrix();
+    void addWeightRow(vector<int> rowId, vector<float> rowWeights);
     void addVertex(int row, int col, float x, float y, float z);
+    void addResultEntry();
 };
 
 #endif // SMOOTHINGMATRIX_H

@@ -493,9 +493,10 @@ void TriangleMesh::BiIteractiveSmoothingStep(){
 //*****************************************
 
 void TriangleMesh::buildSmoothingMatrix(){
-    SmoothingMatrix myMatrix(vertices.size(), vertices.size());
+    SmoothingMatrix myMatrix;
     vector<bool> vertIsVariable(false);
     vector<float> rowWeights;
+    vector<int> rowId;
 
     //Select variable vertices
     for (int i = 0; i < vertices.size()/3; i++){
@@ -510,7 +511,14 @@ void TriangleMesh::buildSmoothingMatrix(){
 
         //Create row of weights
         rowWeights.push_back(-1);
-        for (int j = 0; j < neighboorhood.size(); j++)rowWeights.push_back(weight);
+        rowId.push_back(i);
+        for (int j = 0; j < neighboorhood.size(); j++){
+            rowWeights.push_back(weight);
+            rowId.push_back(j);
+        }
+
+        //add weight row to matrix
+        myMatrix.addWeightRow(rowId, rowWeights);
     }
 }
 
