@@ -37,6 +37,8 @@ private slots:
     void on_BiIteractiveSButton_released();
     void on_BiNSteps_valueChanged(int i);
 
+    void on_GsmtButton_released();
+
 private:
 	Ui::MainWindow *ui;
 };

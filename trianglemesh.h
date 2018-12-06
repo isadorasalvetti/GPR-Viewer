@@ -45,6 +45,7 @@ public:
     void DisplayMeanCurvature();
     void IteractiveSmoothing(int nSteps);
     void BiIteractiveSmoothing(int nSteps);
+    void GlobalSmoothing(int percent);
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -68,7 +69,7 @@ private:
     void IteractiveSmoothingStep();
     void BiIteractiveSmoothingStep();
 
-    void buildSmoothingMatrix();
+    void buildSmoothingMatrix(int validHeight);
 
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 

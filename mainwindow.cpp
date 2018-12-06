@@ -63,3 +63,7 @@ void MainWindow::on_BiIteractiveSButton_released(){
 void MainWindow::on_BiNSteps_valueChanged(int i){
     biIntSteps = i;
 }
+
+void MainWindow::on_GsmtButton_released(){
+    ui->openGLWidget->mesh.GlobalSmoothing(0);
+}

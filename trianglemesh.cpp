@@ -213,6 +213,10 @@ void TriangleMesh::BiIteractiveSmoothing(int nSteps){
     }
 }
 
+void TriangleMesh::GlobalSmoothing(int percent){
+    buildSmoothingMatrix(percent);
+}
+
 //*****************************************
 // Render
 //*****************************************
@@ -492,15 +496,15 @@ void TriangleMesh::BiIteractiveSmoothingStep(){
 // L3 - GlobalSmoothing
 //*****************************************
 
-void TriangleMesh::buildSmoothingMatrix(){
+void TriangleMesh::buildSmoothingMatrix(int validHeight){
     SmoothingMatrix myMatrix;
-    vector<bool> vertIsVariable(false);
+    vector<bool> vertIsVariable(vertices.size()/3, false);
     vector<float> rowWeights;
     vector<int> rowId;
 
     //Select variable vertices
     for (int i = 0; i < vertices.size()/3; i++){
-        if (i*3+1 > 0) vertIsVariable[i] = true; //variable condition
+        if (i*3+1 > validHeight) vertIsVariable[i] = true; //variable condition
     }
 
     //Add weigths to matrix
@@ -514,16 +518,13 @@ void TriangleMesh::buildSmoothingMatrix(){
         rowId.push_back(i);
         for (int j = 0; j < neighboorhood.size(); j++){
             rowWeights.push_back(weight);
-            rowId.push_back(j);
+            rowId.push_back(triangles[neighboorhood[j]]);
         }
 
         //add weight row to matrix
         myMatrix.addWeightRow(rowId, rowWeights);
     }
 }
-
-
-
 
 
 
