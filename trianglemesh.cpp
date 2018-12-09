@@ -497,20 +497,20 @@ void TriangleMesh::BiIteractiveSmoothingStep(){
 //*****************************************
 
 void TriangleMesh::buildSmoothingMatrix(int validHeight){
-    SmoothingMatrix myMatrix;
-    vector<bool> vertIsVariable(vertices.size()/3, false);
+    SmoothingMatrix myMatrix(vertices.size());
+    vector<bool> vertIsVariable(vertices.size(), false);
     vector<float> rowWeights;
     vector<int> rowId;
 
     //Select variable vertices
-    for (int i = 0; i < vertices.size()/3; i++){
-        if (i*3+1 > validHeight) vertIsVariable[i] = true; //variable condition
+    for (int i = 0; i < vertices.size(); i++){
+        if (vertices[i][1] > validHeight) vertIsVariable[i] = true; //variable condition
     }
 
     //Add weigths to matrix
     //TODO: add verification wether or not this vertex is constant.
-    for (int i = 0; i < vertices.size()/3; i++){
-        vector<int> neighboorhood = GetVertexNeighboors(i*3);
+    for (int i = 0; i < vertices.size(); i++){
+        vector<int> neighboorhood = GetVertexNeighboors(i);
         float weight = 1/(float)neighboorhood.size();
 
         //Create row of weights
@@ -521,8 +521,11 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
             rowId.push_back(triangles[neighboorhood[j]]);
         }
 
-        //add weight row to matrix
+        //add weight row and vertex to matrices
         myMatrix.addWeightRow(rowId, rowWeights);
+        myMatrix.addVertex(vertices[i], i);
+        rowWeights.clear();
+        rowId.clear();
     }
 }
 

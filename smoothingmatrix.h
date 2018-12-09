@@ -10,12 +10,15 @@ class SmoothingMatrix
 private:
     Eigen::MatrixXf weightMatrix;
     vector<float> vertexMatrix;
-    Eigen::MatrixXf resultMatrix;
+    Eigen::VectorXf resultXMatrix;
+    Eigen::VectorXf resultYMatrix;
+    Eigen::VectorXf resultZMatrix;
+
 
 public:
-    SmoothingMatrix();
+    SmoothingMatrix(int vertSize);
     void addWeightRow(vector<int> rowId, vector<float> rowWeights);
-    void addVertex(int row, int col, float x, float y, float z);
+    void addVertex(QVector3D vertex, int i);
     void addResultEntry();
 };
 
