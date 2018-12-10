@@ -508,7 +508,6 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
     }
 
     //Add weigths to matrix
-    //TODO: add verification wether or not this vertex is constant.
     for (int i = 0; i < vertices.size(); i++){
         vector<int> neighboorhood = GetVertexNeighboors(i);
         float weight = 1/(float)neighboorhood.size();
@@ -527,8 +526,19 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
         rowWeights.clear();
         rowId.clear();
     }
+    cout << "Smoothing matrix generated" << endl;
+    vertices = myMatrix.solve();
+    updateVertices();
 }
 
+//*****************************************
+// L4 - Noise Magnification
+//*****************************************
+
+
+//*****************************************
+// L5 - Discrete Harmonic Map
+//*****************************************
 
 
 //*****************************************

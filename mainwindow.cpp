@@ -66,4 +66,13 @@ void MainWindow::on_BiNSteps_valueChanged(int i){
 
 void MainWindow::on_GsmtButton_released(){
     ui->openGLWidget->mesh.GlobalSmoothing(0);
+    ui->openGLWidget->update();
+}
+
+void MainWindow::on_MagDetailsButton(){
+
+}
+
+void MainWindow::on_DHMapButton(){
+
 }

@@ -1,7 +1,9 @@
 #ifndef SMOOTHINGMATRIX_H
 #define SMOOTHINGMATRIX_H
 #include <QVector3D>
+#include <QVector>
 #include <Eigen/Core>
+#include <Eigen/Cholesky>
 
 using namespace std;
 
@@ -17,6 +19,7 @@ private:
 
 public:
     SmoothingMatrix(int vertSize);
+    vector<QVector3D> solve();
     void addWeightRow(vector<int> rowId, vector<float> rowWeights);
     void addVertex(QVector3D vertex, int i);
     void addResultEntry();

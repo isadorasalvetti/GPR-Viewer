@@ -39,6 +39,12 @@ private slots:
 
     void on_GsmtButton_released();
 
+    //**** Detail Magnification
+    void on_MagDetailsButton();
+
+    //**** Discrete Harmonic Map
+    void on_DHMapButton();
+
 private:
 	Ui::MainWindow *ui;
 };

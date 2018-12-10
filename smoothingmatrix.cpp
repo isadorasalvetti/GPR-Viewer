@@ -21,7 +21,6 @@ void SmoothingMatrix::addWeightRow(vector<int> rowId, vector<float> rowWeights){
         if (rowId[i] >= weightMatrix.cols()) weightMatrix.conservativeResizeLike(Eigen::MatrixXf::Zero(rows, rowId[i]+1));
         weightMatrix(rowId[0], rowId[i]) = rowWeights[i];
     }
-    int stop = 0;
 }
 
 void SmoothingMatrix::addVertex(QVector3D vertex, int i){
@@ -31,7 +30,19 @@ void SmoothingMatrix::addVertex(QVector3D vertex, int i){
 }
 
 vector<QVector3D> SmoothingMatrix::solve(){
+    //Lefthand side
+    Eigen::MatrixXf weightMatrixT = weightMatrix.transpose(); //AtA
+    Eigen::LLT<Eigen::MatrixXf> lltweightMatrix(weightMatrixT * weightMatrix);
+
     //Solve for X
+    Eigen::VectorXf xCoords = lltweightMatrix.solve(weightMatrixT * resultXMatrix);
     //Solve for Y
+    Eigen::VectorXf yCoords = lltweightMatrix.solve(weightMatrixT * resultYMatrix);
     //Solve for Z
+    Eigen::VectorXf zCoords = lltweightMatrix.solve(weightMatrixT * resultZMatrix);
+
+    vector<QVector3D> returnVector(xCoords.size());
+    for (unsigned int i = 0; i < returnVector.size(); i++) returnVector[i] = QVector3D(xCoords[i], yCoords[i], zCoords[i]);
+
+    return returnVector;
 }
