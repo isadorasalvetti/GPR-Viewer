@@ -536,7 +536,7 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
 }
 
 //*****************************************
-// L4 - Noise Magnification
+// L4 - Detail Magnification
 //*****************************************
 
 void TriangleMesh::getNoise(float l1, float l2, float l3){
