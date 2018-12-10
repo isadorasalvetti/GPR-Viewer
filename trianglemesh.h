@@ -46,6 +46,7 @@ public:
     void IteractiveSmoothing(int nSteps);
     void BiIteractiveSmoothing(int nSteps);
     void GlobalSmoothing(int percent);
+    void DetMagnification(QVector3D l);
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -57,6 +58,7 @@ private:
 private:
     vector<QVector3D> vertices;
 	vector<int> triangles;
+    vector<QVector2D> textureCoordinates;
     pair<QVector3D, QVector3D> boundingBox;
 
     void buildCornerTable();
@@ -70,6 +72,9 @@ private:
     void BiIteractiveSmoothingStep();
 
     void buildSmoothingMatrix(int validHeight);
+
+    void getNoise(float l1, float l2, float l3);
+    vector<QVector3D> SmoothingSteps(vector<QVector3D> &toSmooth, int n);
 
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 

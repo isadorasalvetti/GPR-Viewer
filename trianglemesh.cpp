@@ -217,6 +217,10 @@ void TriangleMesh::GlobalSmoothing(int percent){
     buildSmoothingMatrix(percent);
 }
 
+void TriangleMesh::DetMagnification(QVector3D l){
+    getNoise(l[0], l[1], l[2]);
+}
+
 //*****************************************
 // Render
 //*****************************************
@@ -535,6 +539,34 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
 // L4 - Noise Magnification
 //*****************************************
 
+void TriangleMesh::getNoise(float l1, float l2, float l3){
+    int aSmthng = 10;
+    vector<QVector3D> smoothedVertices = SmoothingSteps(vertices, aSmthng);
+
+    //M = M + l1*(S0-S1) + l2*(S1-S2) + l3*(S2-S3)
+    if (l1 > 0)
+        for (int i = 0; i < vertices.size(); i++) vertices[i] = vertices[i] + l1*(vertices[i] - smoothedVertices[i]);
+    if (l2 > 0 || l3 > 0){
+        vector<QVector3D> smoothedVertices1 = SmoothingSteps(smoothedVertices, aSmthng);
+        vector<QVector3D> smoothedVertices2 = SmoothingSteps(smoothedVertices1, aSmthng);
+        if (l2 > 0) for (int i = 0; i < vertices.size(); i++) vertices[i] = vertices[i] + l2*(smoothedVertices[i] - smoothedVertices1[i]);
+        if (l3 > 0) for (int i = 0; i < vertices.size(); i++) vertices[i] = vertices[i] + l3*(smoothedVertices1[i] - smoothedVertices2[i]);
+    }
+    updateVertices();
+}
+
+vector<QVector3D> TriangleMesh::SmoothingSteps(vector<QVector3D> &toSmooth, int n){
+    vector<QVector3D> newVertices = toSmooth;
+    for (int i = 0; i < n; i++){
+        float g = 0.3; // g E [0, 0.7]
+        newVertices.resize(toSmooth.size());
+        for (int i = 0; i < toSmooth.size(); i++){
+            QVector3D Lv = ComputeLaplacian(i, true);
+            newVertices[i] = newVertices[i] + g*Lv;
+        }
+    }
+    return newVertices;
+}
 
 //*****************************************
 // L5 - Discrete Harmonic Map

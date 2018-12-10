@@ -47,21 +47,15 @@ void MainWindow::on_MeanCButton_released(){
 //Smoothing
 
 void MainWindow::on_IteractiveSButton_released(){
+    intSteps = ui->NSteps->value();
     ui->openGLWidget->mesh.IteractiveSmoothing(intSteps);
     ui->openGLWidget->update();
 }
 
-void MainWindow::on_NSteps_valueChanged(int i){
-    intSteps = i;
-}
-
 void MainWindow::on_BiIteractiveSButton_released(){
-    ui->openGLWidget->mesh.BiIteractiveSmoothing(intSteps);
+    biIntSteps = ui->BiNSteps->value();
+    ui->openGLWidget->mesh.BiIteractiveSmoothing(biIntSteps);
     ui->openGLWidget->update();
-}
-
-void MainWindow::on_BiNSteps_valueChanged(int i){
-    biIntSteps = i;
 }
 
 void MainWindow::on_GsmtButton_released(){
@@ -69,10 +63,12 @@ void MainWindow::on_GsmtButton_released(){
     ui->openGLWidget->update();
 }
 
-void MainWindow::on_MagDetailsButton(){
-
+void MainWindow::on_MagDetailsButton_released(){
+    QVector3D L = QVector3D(ui->MagL1->value(), ui->MagL3->value(), ui->MagL2->value())/10;
+    ui->openGLWidget->mesh.DetMagnification(L);
+    ui->openGLWidget->update();
 }
 
-void MainWindow::on_DHMapButton(){
+void MainWindow::on_DHMapButton_released(){
 
 }

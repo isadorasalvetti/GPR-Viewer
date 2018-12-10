@@ -227,7 +227,33 @@
           <property name="text">
            <string>Magnify Details</string>
           </property>
+          <property name="flat">
+           <bool>false</bool>
+          </property>
          </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="MagL">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QSpinBox" name="MagL2">
+            <property name="value">
+             <number>1</number>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="MagL3"/>
+          </item>
+          <item>
+           <widget class="QSpinBox" name="MagL1"/>
+          </item>
+         </layout>
         </item>
         <item>
          <spacer name="verticalSpacer_5">

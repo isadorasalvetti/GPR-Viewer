@@ -32,18 +32,15 @@ private slots:
 
     //**** Smoothing Buttons
     void on_IteractiveSButton_released();
-    void on_NSteps_valueChanged(int i);
-
     void on_BiIteractiveSButton_released();
-    void on_BiNSteps_valueChanged(int i);
 
     void on_GsmtButton_released();
 
     //**** Detail Magnification
-    void on_MagDetailsButton();
+    void on_MagDetailsButton_released();
 
     //**** Discrete Harmonic Map
-    void on_DHMapButton();
+    void on_DHMapButton_released();
 
 private:
 	Ui::MainWindow *ui;
