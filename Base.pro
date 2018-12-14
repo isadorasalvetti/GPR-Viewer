@@ -16,7 +16,8 @@ HEADERS += \
     trianglemesh.h \
     plyreader.h \
     smoothingmatrix.h \
-    ui_mainwindow.h
+    ui_mainwindow.h \
+    smoothingmatrix_s.h
 
 FORMS += mainwindow.ui
 
@@ -27,6 +28,7 @@ SOURCES += \
     trianglemesh.cpp \
     plyreader.cpp \
     smoothingmatrix.cpp \
+    smoothingmatrix_s.cpp
 
 DISTFILES += \
     shaders/simpleshader.vert \
