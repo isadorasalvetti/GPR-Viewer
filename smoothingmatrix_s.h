@@ -10,7 +10,7 @@ using namespace std;
 typedef Eigen::Triplet<double> TEntry;
 
 class SparseSmoothingMatrix
-{
+{/*
 private:
     vector<TEntry> weightEntries;
     Eigen::SparseMatrix<float> weightMatrix;
@@ -26,7 +26,7 @@ public:
     void addWeightRow(vector<TEntry> entry);
     void addVertex(QVector3D vertex, int i);
     void buildMatrix();
-    void addResultEntry();
+    void addResultEntry();*/
 };
 
 #endif // SMOOTHINGMATRIX_S_H

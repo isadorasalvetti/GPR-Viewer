@@ -1,6 +1,7 @@
 #include <iostream>
 #include <math.h>
 #include "trianglemesh.h"
+#include <Eigen/Sparse>
 
 
 using namespace std;
@@ -214,7 +215,7 @@ void TriangleMesh::BiIteractiveSmoothing(int nSteps){
 }
 
 void TriangleMesh::GlobalSmoothing(int percent){
-    buildSmoothingMatrix(percent);
+    solveSparseSmoothing(0);
 }
 
 void TriangleMesh::DetMagnification(QVector3D l){
@@ -508,13 +509,13 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
 
     //Select variable vertices
     for (int i = 0; i < vertices.size(); i++){
-        if (vertices[i][1] > validHeight) vertIsVariable[i] = true; //variable condition
+        vertIsVariable[i] = true or vertices[i][1] > validHeight;
     }
 
     //Add weigths to matrix
     for (int i = 0; i < vertices.size(); i++){
         vector<int> neighboorhood = GetVertexNeighboors(i);
-        float weight = 1/(float)neighboorhood.size();
+        float weight = 1.0/neighboorhood.size();
 
         //Create row of weights
         rowWeights.push_back(-1);
@@ -533,6 +534,100 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
     cout << "Smoothing matrix generated" << endl;
     vertices = myMatrix.solve();
     updateVertices();
+}
+
+void TriangleMesh::solveSparseSmoothing(int boundaryHeight) {
+    vector<Eigen::Triplet<float>> coeffs;
+    Eigen::VectorXf b[3];
+    unsigned int n = vertices.size();
+
+    // init b to the max size
+    for (int k = 0; k < 3; ++k) b[k] = Eigen::VectorXf(n);
+
+    // build entries
+    vector<bool> vertIsVariable(n, false);
+    for (int i = 0; i < n; i++) {
+        vertIsVariable[i] = vertices[i].y() > boundaryHeight;
+    }
+
+    // Matrix A is m1 x m2,  m2x1 unknowns,  m1x1 b
+    unsigned int m1 = 0;
+    unsigned int m2 = 0;
+    vector<unsigned int> j2J(n, -1);
+    for (int i = 0; i < n; ++i) {
+        if (vertIsVariable[i]) {
+            j2J[i] = m2;
+            ++m2;
+        }
+    }
+
+    unsigned int I = 0;
+    for (unsigned int i = 0; i < n; ++i) {
+        QVector3D &v_i  = vertices[i];
+        vector<int> neighbors = GetVertexNeighboors(i);
+        float sumWeight_i = 0;
+        float b_i[3] = {0,0,0};
+        bool isRowNull = true;
+        for (int l : neighbors) {
+            int j = triangles[l];
+            QVector3D &v_j = vertices[j];
+
+
+            float weight_i_j = 1.0/neighbors.size();
+
+
+            sumWeight_i += weight_i_j;
+            if (vertIsVariable[j]) {
+                isRowNull = false;
+                coeffs.push_back(Eigen::Triplet<float> (I, j2J[j], weight_i_j));
+            } else {
+                for (int k = 0; k < 3; ++k)
+                    b_i[k] += -weight_i_j * v_j[k];
+            }
+        }
+        if (vertIsVariable[i]) {
+            isRowNull = false;
+            coeffs.push_back(Eigen::Triplet<float> (I, j2J[i], -sumWeight_i));
+        } else {
+            for (int k = 0; k < 3; ++k)
+                b_i[k] += sumWeight_i * v_i[k];
+        }
+
+        if (not isRowNull) {
+            for (int k = 0; k < 3; ++k) b[k][I] = b_i[k];
+            ++I;
+        }
+    }
+    m1 = I;
+    // solve system
+    Eigen::SparseMatrix<float> A(m1,m2);
+    A.setFromTriplets(coeffs.begin(), coeffs.end());
+
+    Eigen::SparseMatrix<float> At = A.transpose();
+    // Solving:
+    Eigen::SimplicialCholesky<Eigen::SparseMatrix<float>> chol;
+    chol.compute(At*A);
+
+    if (chol.info() != Eigen::Success) {
+        cout << "SOLVER PROBLEM " << chol.info() << '\n'
+             << Eigen::Success << ' ' << Eigen::NumericalIssue << ' '
+             << Eigen::NoConvergence << ' ' << Eigen::InvalidInput << endl;
+    }
+    cout << "CHOLESKY OK" << endl;
+
+
+    Eigen::VectorXf sol[3];
+    for (int k = 0; k < 3; ++k)
+        sol[k] = chol.solve(At*b[k].block(0,0,m1,1));
+
+    // change representation
+    for (unsigned int i = 0; i < vertices.size(); ++i) {
+        if (vertIsVariable[i])
+            vertices[i] = QVector3D(sol[0][j2J[i]], sol[1][j2J[i]], sol[2][j2J[i]]);
+    }
+
+    updateVertices();
+
 }
 
 //*****************************************

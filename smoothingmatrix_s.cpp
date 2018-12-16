@@ -1,5 +1,5 @@
-#include "SmoothingMatrix_s.h"
-
+#include "smoothingmatrix_s.h"
+/*
 SparseSmoothingMatrix::SparseSmoothingMatrix(int vertSize){
     weightMatrix.resize(0,1);
     resultXMatrix.resize(vertSize);
@@ -38,3 +38,4 @@ vector<QVector3D> SparseSmoothingMatrix::solve(){
 
     return returnVector;
 }
+*/
