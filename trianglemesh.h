@@ -67,11 +67,12 @@ private:
     vector<float> GaussianCurvature();
     vector<float> MeanCurvature();
 
-    QVector3D ComputeLaplacian(int v, bool uniform);
+    QVector3D ComputeLaplacian(int v_index, bool uniform);
     void IteractiveSmoothingStep();
     void BiIteractiveSmoothingStep();
 
-    void buildSmoothingMatrix(int validHeight);
+    void buildSmoothingMatrix(int);
+    void solveSparseSmoothing(int boundaryHeight);
 
     void getNoise(float l1, float l2, float l3);
     vector<QVector3D> SmoothingSteps(vector<QVector3D> &toSmooth, int n);
