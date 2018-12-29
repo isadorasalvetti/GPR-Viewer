@@ -109,7 +109,7 @@
            <number>0</number>
           </property>
           <item row="1" column="1">
-           <widget class="QCheckBox" name="checkBox">
+           <widget class="QCheckBox" name="CWcheckBox">
             <property name="minimumSize">
              <size>
               <width>45</width>
@@ -123,7 +123,7 @@
              <string/>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
             <property name="tristate">
              <bool>false</bool>
@@ -139,7 +139,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Uniform weigth</string>
+             <string>Cotangent weigth</string>
             </property>
            </widget>
           </item>
@@ -198,8 +198,11 @@
         </item>
         <item>
          <widget class="QSlider" name="GsmtSlider">
+          <property name="maximum">
+           <number>100</number>
+          </property>
           <property name="value">
-           <number>80</number>
+           <number>1</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>

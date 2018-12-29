@@ -43,9 +43,9 @@ public:
 public:
     void DisplayGaussianCurvature();
     void DisplayMeanCurvature();
-    void IteractiveSmoothing(int nSteps);
-    void BiIteractiveSmoothing(int nSteps);
-    void GlobalSmoothing(int percent);
+    void IteractiveSmoothing(int nSteps, bool uw);
+    void BiIteractiveSmoothing(int nSteps, bool uw);
+    void GlobalSmoothing(float percent);
     void DetMagnification(QVector3D l);
 
 private:
@@ -55,7 +55,6 @@ private:
     void updateColors(vector<QVector3D> &newColors);
     void updateVertices();
 
-private:
     vector<QVector3D> vertices;
 	vector<int> triangles;
     vector<QVector2D> textureCoordinates;
@@ -63,16 +62,18 @@ private:
 
     void buildCornerTable();
     vector<int> GetVertexNeighboors(unsigned int vert);
+    vector<int> GetOpenVertexNeighboors(unsigned int vert);
 
     vector<float> GaussianCurvature();
     vector<float> MeanCurvature();
 
     QVector3D ComputeLaplacian(int v_index, bool uniform);
-    void IteractiveSmoothingStep();
-    void BiIteractiveSmoothingStep();
+    void IteractiveSmoothingStep(bool weight);
+    void BiIteractiveSmoothingStep(bool weight);
 
+    vector<bool> getCutOffVertices(float height);
     void buildSmoothingMatrix(int);
-    void solveSparseSmoothing(int boundaryHeight);
+    void solveSparseSmoothing(vector<bool> vertIsVariable);
 
     void getNoise(float l1, float l2, float l3);
     vector<QVector3D> SmoothingSteps(vector<QVector3D> &toSmooth, int n);

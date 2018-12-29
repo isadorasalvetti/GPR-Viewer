@@ -45,8 +45,20 @@ pair<QVector3D, QVector3D> getBoundingBox(vector<QVector3D> &verts){
     return pair<QVector3D, QVector3D>(QVector3D(x0, y0, z0), QVector3D(x1, y1, z1));
 }
 
+pair<float, float> getBoundingBoxHeight(vector<QVector3D> &verts){
+    float vertCount = verts.size();
+    float x0 = 0; float y0 = 0; float z0 = 0; float x1 = 0; float y1 = 0; float z1 = 0;
+    for (int i =0; i<vertCount; i++){
+        y0 = min(y0, verts[i][1]);
+        y1 = max(y1, verts[i][1]);
+    }
+    return pair<float, float>(y0, y1);
+}
+
 float cosineToCotangent(float cos){
-   return 1/tan(acos(cos));
+   float bt = sqrt(1.0f - cos * cos);
+   if (bt < 0.0001f and bt > -0.0001f) return 0;
+   return cos / bt;
 }
 
 //*****************************************
@@ -202,20 +214,23 @@ void TriangleMesh::DisplayMeanCurvature(){
     updateColors(colors);
 }
 
-void TriangleMesh::IteractiveSmoothing(int nSteps){
+void TriangleMesh::IteractiveSmoothing(int nSteps, bool uw){
     for (int i = 0; i < nSteps; i++){
-        IteractiveSmoothingStep();
+        IteractiveSmoothingStep(uw);
     }
 }
 
-void TriangleMesh::BiIteractiveSmoothing(int nSteps){
+void TriangleMesh::BiIteractiveSmoothing(int nSteps, bool uw){
     for (int i = 0; i < nSteps; i++){
-        BiIteractiveSmoothingStep();
+        BiIteractiveSmoothingStep(uw);
     }
 }
 
-void TriangleMesh::GlobalSmoothing(int percent){
-    solveSparseSmoothing(0);
+void TriangleMesh::GlobalSmoothing(float percent){
+    pair<float, float> bBoxHt = getBoundingBoxHeight(vertices);
+    float diff = bBoxHt.second - bBoxHt.first;
+    float cutOffHeight = bBoxHt.first + diff*percent;
+    solveSparseSmoothing(getCutOffVertices(cutOffHeight));
 }
 
 void TriangleMesh::DetMagnification(QVector3D l){
@@ -379,6 +394,23 @@ vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
     return neighboors;
 }
 
+vector<int> TriangleMesh::GetOpenVertexNeighboors(unsigned int vert){
+    vector<int> neighboors;
+
+    //get corner of this vertex
+    int initialCorner = next(cornerVertex[vert]);
+    int nextCorner = initialCorner;
+
+    //find vertices surrounding this corner
+    while(true){
+        neighboors.push_back(nextCorner);
+        nextCorner = previous(cornersTable[nextCorner]);
+        if (nextCorner == -1) {break; qDebug("Non manifold mesh!");} //non manifold mesh
+        if (nextCorner == initialCorner) break; //corner already in neighboors, end of loop
+    }
+    return neighboors;
+}
+
 //*****************************************
 // L1 - Curvatures
 //*****************************************
@@ -396,7 +428,6 @@ vector<float> TriangleMesh::GaussianCurvature(){
 
         //get area of triangle
         float area = 0;
-        //qDebug()<<"ggrrrargahrj";
         for (unsigned int j=0; j < neighboors.size(); j++){
             QVector3D v1 = - vertices[i] + vertices[triangles[neighboors[j]]];
             QVector3D v2 = - vertices[i] + vertices[triangles[neighboors[(j+1) % neighboors.size()]]];
@@ -451,6 +482,18 @@ vector<float> TriangleMesh::MeanCurvature(){
 // L2 - Smoothing
 //*****************************************
 
+int getNext(const int &i, const int &count){
+    int nxt = i+1;
+    if (nxt < count) return nxt;
+    else return 0;
+}
+
+int getPrev(const int &i, const int &count){
+    int prev = i-1;
+    if (prev >= 0) return prev;
+    else return count-1;
+}
+
 QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
     //Returns Laplacian of vertex v
     QVector3D Lv = QVector3D(0, 0, 0);
@@ -463,33 +506,42 @@ QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
 
     else { //CotangentWeights
         vector<int> neighboorhood = GetVertexNeighboors(v);
-        for (int i = 0; i < neighboorhood.size(); i++){
-            QVector3D vn = vertices[v].normalized(); QVector3D vi = vertices[triangles[neighboorhood[i]]].normalized();
-            float weight = QVector3D::dotProduct(vn, vi); //TODO!
-            Lv += weight*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
+        int nSize = neighboorhood.size();
+        for (int i = 0; i < nSize; i++){
+            QVector3D vn = vertices[v]; QVector3D vi = vertices[triangles[neighboorhood[i]]];
+            QVector3D vnvi = (vi - vn).normalized();
+            int naInd = neighboorhood[getPrev(i, nSize)]; int nbInd = neighboorhood[getNext(i, nSize)];
+            QVector3D ka = vertices[triangles[neighboorhood[getPrev(i, nSize)]]];
+            QVector3D kb = vertices[triangles[neighboorhood[getNext(i, nSize)]]];
+            QVector3D vnka = (ka - vn).normalized(); QVector3D vnkb = (kb - vn).normalized();
+
+            float weight = cosineToCotangent(QVector3D::dotProduct(vnvi, vnka))
+                         + cosineToCotangent(QVector3D::dotProduct(vnvi, vnkb));
+
+            Lv += (weight/2)*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
         }
         return Lv;
     }
 }
 
-void TriangleMesh::IteractiveSmoothingStep(){
+void TriangleMesh::IteractiveSmoothingStep(bool weight){
     vector<QVector3D> newVertices;
     float g = 0.3; // g E [0, 0.7]
     newVertices.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++){
-        QVector3D Lv = ComputeLaplacian(i, true);
+        QVector3D Lv = ComputeLaplacian(i, weight);
         newVertices[i] = vertices[i] + g*Lv;
     }
     vertices = newVertices;
     updateVertices();
 }
 
-void TriangleMesh::BiIteractiveSmoothingStep(){
+void TriangleMesh::BiIteractiveSmoothingStep(bool weight){
     vector<QVector3D> newVertices;
     float g = 0.3; // g E [0, 0.7]
     newVertices.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++){
-        vertices[i] = vertices[i] + g*ComputeLaplacian(i, true);
+        vertices[i] = vertices[i] + g*ComputeLaplacian(i, weight);
         QVector3D Lv2 = ComputeLaplacian(i, true);
         newVertices[i] = vertices[i] - g*Lv2;
     }
@@ -536,19 +588,24 @@ void TriangleMesh::buildSmoothingMatrix(int validHeight){
     updateVertices();
 }
 
-void TriangleMesh::solveSparseSmoothing(int boundaryHeight) {
+vector<bool> TriangleMesh::getCutOffVertices(float height){
+    // build entries
+    unsigned int n = vertices.size();
+    vector<bool> vertIsVariable(n, false);
+    for (int i = 0; i < n; i++) {
+        vertIsVariable[i] = vertices[i].y() > height;
+    }
+    cout << "Cut off height set too " << height << "." << endl;
+    return vertIsVariable;
+}
+
+void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable) {
     vector<Eigen::Triplet<float>> coeffs;
     Eigen::VectorXf b[3];
     unsigned int n = vertices.size();
 
     // init b to the max size
     for (int k = 0; k < 3; ++k) b[k] = Eigen::VectorXf(n);
-
-    // build entries
-    vector<bool> vertIsVariable(n, false);
-    for (int i = 0; i < n; i++) {
-        vertIsVariable[i] = vertices[i].y() > boundaryHeight;
-    }
 
     // Matrix A is m1 x m2,  m2x1 unknowns,  m1x1 b
     unsigned int m1 = 0;

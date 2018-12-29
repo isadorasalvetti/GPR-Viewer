@@ -48,18 +48,21 @@ void MainWindow::on_MeanCButton_released(){
 
 void MainWindow::on_IteractiveSButton_released(){
     intSteps = ui->NSteps->value();
-    ui->openGLWidget->mesh.IteractiveSmoothing(intSteps);
+    bool cw = ui->CWcheckBox->isChecked();
+    ui->openGLWidget->mesh.IteractiveSmoothing(intSteps, !cw);
     ui->openGLWidget->update();
 }
 
 void MainWindow::on_BiIteractiveSButton_released(){
     biIntSteps = ui->BiNSteps->value();
-    ui->openGLWidget->mesh.BiIteractiveSmoothing(biIntSteps);
+    bool cw = ui->CWcheckBox->isChecked();
+    ui->openGLWidget->mesh.BiIteractiveSmoothing(biIntSteps, !cw);
     ui->openGLWidget->update();
 }
 
 void MainWindow::on_GsmtButton_released(){
-    ui->openGLWidget->mesh.GlobalSmoothing(0);
+    float percent = ui->GsmtSlider->value()/(float)100;
+    ui->openGLWidget->mesh.GlobalSmoothing(percent);
     ui->openGLWidget->update();
 }
 
