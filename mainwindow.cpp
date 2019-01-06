@@ -73,5 +73,5 @@ void MainWindow::on_MagDetailsButton_released(){
 }
 
 void MainWindow::on_DHMapButton_released(){
-
+    ui->openGLWidget->mesh.Parametrization();
 }

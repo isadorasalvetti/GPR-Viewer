@@ -6,7 +6,7 @@
 
 using namespace std;
 
-const float PI = 3.1415f;
+const double PI = 3.14159265359;
 
 //*****************************************
 // CornerEdges
@@ -58,7 +58,15 @@ pair<float, float> getBoundingBoxHeight(vector<QVector3D> &verts){
 float cosineToCotangent(float cos){
    float bt = sqrt(1.0f - cos * cos);
    if (bt < 0.0001f and bt > -0.0001f) return 0;
-   return cos / bt;
+   return abs(cos / bt);
+}
+
+float getCotangent(QVector3D va, QVector3D vb){
+    va.normalize(); vb.normalize();
+    float cos = QVector3D::dotProduct(va, vb);
+    float sin = (QVector3D::crossProduct(va, vb)).length();
+    if (sin < 0.0000001) return 0;
+    else return cos/sin;
 }
 
 //*****************************************
@@ -101,14 +109,14 @@ void TriangleMesh::buildCube()
                     7, 3, 0, 0, 4, 7,
                     1, 2, 6, 6, 5, 1,
                     0, 1, 4, 5, 4, 1,
-                    2, 3, 7, 7, 6, 2
+//                    2, 3, 7, 7, 6, 2
                   };
 
 	int i;
 
 	for(i=0; i<8; i+=1)
 		addVertex(0.5f * QVector3D(vertices[3*i], vertices[3*i+1], vertices[3*i+2]));
-	for(i=0; i<12; i++)
+    for(i=0; i<10; i++)
 		addTriangle(faces[3*i], faces[3*i+1], faces[3*i+2]);
 }
 
@@ -235,6 +243,19 @@ void TriangleMesh::GlobalSmoothing(float percent){
 
 void TriangleMesh::DetMagnification(QVector3D l){
     getNoise(l[0], l[1], l[2]);
+}
+//**********
+vector<bool> convertToBool(vector<int>constVerts, int size){
+    vector<bool> vertIsVariable(size, true);
+    for (int i =0; i<constVerts.size(); i++)
+        vertIsVariable[constVerts[i]] = false;
+    return vertIsVariable;
+}
+//*************
+void TriangleMesh::Parametrization(){
+    vector<int> borderVertices = getBoundary();
+    CreateMapBorder(borderVertices);
+    solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
 }
 
 //*****************************************
@@ -377,19 +398,62 @@ void TriangleMesh::buildCornerTable(){
     std::cout<<"Corner table generated"<<std::endl;
 }
 
+vector<int> TriangleMesh::getBoundary(){
+    list<int> singleCorners;
+    for (int i=0; i< cornersTable.size(); i++){
+        if (cornersTable[i] == -1){ //found first border vertex.
+            singleCorners.push_back(i);
+        }
+    }
+    vector<int> borderEdge;
+
+    int faceI = singleCorners.front();
+    int vertA = triangles[next(faceI)];
+    int vertB = triangles[next(next(faceI))];
+    borderEdge.push_back(vertA);
+    borderEdge.push_back(vertB);
+
+    while(singleCorners.size() > 0)
+    for (auto j = singleCorners.begin();
+         j != singleCorners.end();
+         j++){
+            int faceJ = *j;
+            vertA = triangles[next(faceJ)];
+            if (vertA == vertB) {
+                vertB = triangles[next(next(faceJ))];
+                borderEdge.push_back(vertB);
+                singleCorners.erase(j);
+                break;
+            }
+        }
+    return borderEdge;
+}
+
 vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
     vector<int> neighboors;
 
     //get corner of this vertex
-    int initialCorner = next(cornerVertex[vert]);
-    int nextCorner = initialCorner;
+    int nextCorner = next(cornerVertex[vert]);
+    neighboors.push_back(nextCorner);
 
     //find vertices surrounding this corner
     while(true){
-        neighboors.push_back(nextCorner);
-        nextCorner = previous(cornersTable[nextCorner]);
-        if (nextCorner == -1) {break; qDebug("Non manifold mesh!");} //non manifold mesh
-        if (nextCorner == initialCorner) break; //corner already in neighboors, end of loop
+        nextCorner = cornersTable[nextCorner];
+        if (nextCorner < 0) { //Mesh is non-manifold. Must check border
+            neighboors.push_back(next(nextCorner));
+            nextCorner = previous(cornerVertex[vert]);
+            while(true){
+                nextCorner = cornersTable[nextCorner];
+                if (nextCorner < 0) break;
+                neighboors.push_back(nextCorner);
+                nextCorner = next(nextCorner);
+            }
+            break;
+        }
+    nextCorner = previous(nextCorner);
+    neighboors.push_back(nextCorner);
+
+    if (nextCorner == next(cornerVertex[vert])) break; //corner already in neighboors, end of loop
     }
     return neighboors;
 }
@@ -505,23 +569,26 @@ QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
     }
 
     else { //CotangentWeights
-        vector<int> neighboorhood = GetVertexNeighboors(v);
-        int nSize = neighboorhood.size();
+        vector<int> neighborhood = GetVertexNeighboors(v);
+        int nSize = neighborhood.size();
         for (int i = 0; i < nSize; i++){
-            QVector3D vn = vertices[v]; QVector3D vi = vertices[triangles[neighboorhood[i]]];
-            QVector3D vnvi = (vi - vn).normalized();
-            int naInd = neighboorhood[getPrev(i, nSize)]; int nbInd = neighboorhood[getNext(i, nSize)];
-            QVector3D ka = vertices[triangles[neighboorhood[getPrev(i, nSize)]]];
-            QVector3D kb = vertices[triangles[neighboorhood[getNext(i, nSize)]]];
-            QVector3D vnka = (ka - vn).normalized(); QVector3D vnkb = (kb - vn).normalized();
-
-            float weight = cosineToCotangent(QVector3D::dotProduct(vnvi, vnka))
-                         + cosineToCotangent(QVector3D::dotProduct(vnvi, vnkb));
-
-            Lv += (weight/2)*(vertices[triangles[neighboorhood[i]]]-vertices[v]);
+            Lv += getCotangentWeight(v, i, neighborhood)*(vertices[triangles[neighborhood[i]]]-vertices[v]);
         }
         return Lv;
     }
+}
+
+float TriangleMesh::getCotangentWeight(int v, int i, vector<int> &neighborhood){
+    int nSize = neighborhood.size();
+    QVector3D vn = vertices[v]; QVector3D vi = vertices[triangles[neighborhood[i]]];
+    int naInd = neighborhood[getPrev(i, nSize)]; int nbInd = neighborhood[getNext(i, nSize)];
+    QVector3D ka = vertices[triangles[neighborhood[getPrev(i, nSize)]]];
+    QVector3D kb = vertices[triangles[neighborhood[getNext(i, nSize)]]];
+    QVector3D vnka = (ka - vn); QVector3D vnkb = (kb - vn);
+    QVector3D vika = (ka - vi); QVector3D vikb = (kb - vi);
+
+   return (getCotangent(vnka, vika)
+                 + getCotangent(vnkb, vikb))/2;
 }
 
 void TriangleMesh::IteractiveSmoothingStep(bool weight){
@@ -542,7 +609,7 @@ void TriangleMesh::BiIteractiveSmoothingStep(bool weight){
     newVertices.resize(vertices.size());
     for (int i = 0; i < vertices.size(); i++){
         vertices[i] = vertices[i] + g*ComputeLaplacian(i, weight);
-        QVector3D Lv2 = ComputeLaplacian(i, true);
+        QVector3D Lv2 = ComputeLaplacian(i, weight);
         newVertices[i] = vertices[i] - g*Lv2;
     }
     vertices = newVertices;
@@ -553,49 +620,53 @@ void TriangleMesh::BiIteractiveSmoothingStep(bool weight){
 // L3 - GlobalSmoothing
 //*****************************************
 
-void TriangleMesh::buildSmoothingMatrix(int validHeight){
-    SmoothingMatrix myMatrix(vertices.size());
-    vector<bool> vertIsVariable(vertices.size(), false);
-    vector<float> rowWeights;
-    vector<int> rowId;
 
-    //Select variable vertices
-    for (int i = 0; i < vertices.size(); i++){
-        vertIsVariable[i] = true or vertices[i][1] > validHeight;
-    }
+//vector<bool> TriangleMesh::getCutOffVertices(float validHeight){
+//    //Select variable vertices
+//    vector<bool> vertIsVariable(vertices.size(), false);
+//    for (int i = 0; i < vertices.size(); i++){
+//        vertIsVariable[i] = true or vertices[i][1] > validHeight;
+//    }
+//    return vertIsVariable;
+//}
 
-    //Add weigths to matrix
-    for (int i = 0; i < vertices.size(); i++){
-        vector<int> neighboorhood = GetVertexNeighboors(i);
-        float weight = 1.0/neighboorhood.size();
+//void TriangleMesh::buildSmoothingMatrix(QVector3D vertIsVariable){
+//    SmoothingMatrix myMatrix(vertices.size());
+//    vector<float> rowWeights;
+//    vector<int> rowId;
 
-        //Create row of weights
-        rowWeights.push_back(-1);
-        rowId.push_back(i);
-        for (int j = 0; j < neighboorhood.size(); j++){
-            rowWeights.push_back(weight);
-            rowId.push_back(triangles[neighboorhood[j]]);
-        }
+//    //Add weigths to matrix
+//    for (int i = 0; i < vertices.size(); i++){
+//        vector<int> neighboorhood = GetVertexNeighboors(i);
+//        float weight = 1.0/neighboorhood.size();
 
-        //add weight row and vertex to matrices
-        myMatrix.addWeightRow(rowId, rowWeights);
-        myMatrix.addVertex(vertices[i], i);
-        rowWeights.clear();
-        rowId.clear();
-    }
-    cout << "Smoothing matrix generated" << endl;
-    vertices = myMatrix.solve();
-    updateVertices();
-}
+//        //Create row of weights
+//        rowWeights.push_back(-1);
+//        rowId.push_back(i);
+//        for (int j = 0; j < neighboorhood.size(); j++){
+//            rowWeights.push_back(weight);
+//            rowId.push_back(triangles[neighboorhood[j]]);
+//        }
 
-vector<bool> TriangleMesh::getCutOffVertices(float height){
+//        //add weight row and vertex to matrices
+//        myMatrix.addWeightRow(rowId, rowWeights);
+//        myMatrix.addVertex(vertices[i], i);
+//        rowWeights.clear();
+//        rowId.clear();
+//    }
+//    cout << "Smoothing matrix generated" << endl;
+//    vertices = myMatrix.solve();
+//    updateVertices();
+//}
+
+vector<bool> TriangleMesh::getCutOffVertices(float validHeight){
     // build entries
     unsigned int n = vertices.size();
     vector<bool> vertIsVariable(n, false);
     for (int i = 0; i < n; i++) {
-        vertIsVariable[i] = vertices[i].y() > height;
+        vertIsVariable[i] = vertices[i].y() > validHeight;
     }
-    cout << "Cut off height set too " << height << "." << endl;
+    cout << "Cut off height set too " << validHeight << "." << endl;
     return vertIsVariable;
 }
 
@@ -625,12 +696,11 @@ void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable) {
         float sumWeight_i = 0;
         float b_i[3] = {0,0,0};
         bool isRowNull = true;
-        for (int l : neighbors) {
-            int j = triangles[l];
+        for (int l = 0; l < neighbors.size(); l++) {
+            int j = triangles[neighbors[l]];
             QVector3D &v_j = vertices[j];
 
-
-            float weight_i_j = 1.0/neighbors.size();
+            float weight_i_j = getCotangentWeight(i, l, neighbors);
 
 
             sumWeight_i += weight_i_j;
@@ -724,6 +794,15 @@ vector<QVector3D> TriangleMesh::SmoothingSteps(vector<QVector3D> &toSmooth, int 
 // L5 - Discrete Harmonic Map
 //*****************************************
 
+void TriangleMesh::CreateMapBorder(vector<int> borderVertices){
+    int size = borderVertices.size();
+    double angle = 2*PI/size;
+
+    for (int i = 0; i < size; i++){
+         QVector3D p1 = QVector3D(sin(angle*i), 0, cos(angle*i));
+         vertices[borderVertices[i]] = p1;
+    }
+}
 
 //*****************************************
 //Colors
