@@ -53,8 +53,11 @@ public:
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
     vector<QVector3D> buildReplicatedColors(vector<QVector3D> currColors);
+    vector<QVector2D> buildReplicatedUVs(vector<QVector3D> currUVs);
+
     void fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
     void updateColors(vector<QVector3D> &newColors);
+    void updateUVs(vector<QVector2D> &newUVs);
     void updateVertices();
 
     vector<QVector3D> vertices;
@@ -86,8 +89,9 @@ private:
 
     void GetColors(vector<QVector3D> &vertColors, vector<float>&vertCurvatures);
 
+    QOpenGLShaderProgram *pg;
     QOpenGLVertexArrayObject vao;
-    QOpenGLBuffer vboVertices, vboNormals, vboColors, eboTriangles;
+    QOpenGLBuffer vboVertices, vboNormals, vboColors, vboUV, eboTriangles;
 
 };
 
