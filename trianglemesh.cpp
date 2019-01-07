@@ -282,8 +282,8 @@ void TriangleMesh::Parametrization(){
     solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
     vector<QVector2D> newUVs = buildReplicatedUVs(vertices);
     updateUVs(newUVs);
-    updateVertices();
-    //vertices = oldVertices;
+    //updateVertices();
+    vertices = oldVertices;
     pg->release();
 }
 
