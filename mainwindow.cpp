@@ -72,7 +72,8 @@ void MainWindow::on_BiIteractiveSButton_released(){
 void MainWindow::on_GsmtButton_released(){
     float percent = ui->GsmtSlider->value()/(float)100;
     bool culling = ui->SmothingOption->currentIndex();
-    ui->openGLWidget->mesh.GlobalSmoothing(percent, culling);
+    bool cw = ui->LaplacianOption->currentIndex();
+    ui->openGLWidget->mesh.GlobalSmoothing(percent, culling, !cw);
     ui->openGLWidget->makeCurrent();
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     ui->openGLWidget->update();

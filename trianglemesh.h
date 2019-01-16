@@ -47,7 +47,7 @@ public:
     void DisplayMeanCurvature();
     void IteractiveSmoothing(int nSteps, bool uw);
     void BiIteractiveSmoothing(int nSteps, bool uw);
-    void GlobalSmoothing(float percent, bool type);
+    void GlobalSmoothing(float percent, bool type, bool weight);
     void DetMagnification(QVector3D l);
     void Parametrization();
     void DisplayParametrization();
@@ -91,7 +91,7 @@ private:
     vector<bool> getCutOffVertices(float validHeight);
     vector<bool> getCutOffVerticesPrcnt(float percentage);
     void buildSmoothingMatrix(QVector3D vertIsVariable);
-    void solveSparseSmoothing(vector<bool> vertIsVariable);
+    void solveSparseSmoothing(vector<bool> vertIsVariable, bool uniform);
     void solveSparseSmoothingCactus(vector<bool> vertIsVariable);
 
     void getNoise(float l1, float l2, float l3);

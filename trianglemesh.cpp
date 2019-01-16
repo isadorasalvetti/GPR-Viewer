@@ -67,12 +67,11 @@ float cosineToCotangent(float cos){
 float getCotangent(QVector3D va, QVector3D vb){
     va.normalize(); vb.normalize();
     float sin = (QVector3D::crossProduct(va, vb)).length();
-    if (abs(sin) < 0.000001) return 0;
+    if (abs(sin) < 0.0001) sin = 0.0001;
+    if(sin > 1.0f) sin = 1.0f;
     float cos = QVector3D::dotProduct(va, vb);
 
     float cot = cos/sin;
-    if (cot < 0) cot = -cot;
-    cot = max(cot, -cotan_max);
     return cot;
 }
 
@@ -200,6 +199,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program){
     vector<QVector3D> repColors = buildReplicatedColors(colors);
     updateColors(repColors);
     backupVertices = vertices;
+    uvsComputed = false;
 
 	vao.release();
 	program->release();
@@ -263,12 +263,12 @@ void TriangleMesh::BiIteractiveSmoothing(int nSteps, bool uw){
     }
 }
 
-void TriangleMesh::GlobalSmoothing(float percent, bool type){
+void TriangleMesh::GlobalSmoothing(float percent, bool type, bool weight){
     pair<float, float> bBoxHt = getBoundingBoxHeight(vertices);
     float diff = bBoxHt.second - bBoxHt.first;
     float cutOffHeight = bBoxHt.first + diff*percent;
-    if (type) solveSparseSmoothing(getCutOffVerticesPrcnt(percent));
-    else solveSparseSmoothing(getCutOffVertices(cutOffHeight));
+    if (type) solveSparseSmoothing(getCutOffVerticesPrcnt(percent), weight);
+    else solveSparseSmoothing(getCutOffVertices(cutOffHeight), weight);
     updateVertices();
 }
 
@@ -291,7 +291,7 @@ void TriangleMesh::Parametrization(){
         vector<QVector3D> saveVertices = vertices;
         vector<int> borderVertices = getBoundary();
         CreateMapBorder(borderVertices);
-        solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
+        solveSparseSmoothing(convertToBool(borderVertices, vertices.size()), 1);
         uvsComputed = true;
         uvs = vertices;
         vertices = backupVertices;
@@ -307,7 +307,7 @@ void TriangleMesh::DisplayParametrization(){
     if (!uvsComputed){
         vector<int> borderVertices = getBoundary();
         CreateMapBorder(borderVertices);
-        solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
+        solveSparseSmoothing(convertToBool(borderVertices, vertices.size()), 1);
         uvsComputed = true;
         uvs = vertices;
     }
@@ -779,7 +779,7 @@ vector<bool> TriangleMesh::getCutOffVerticesPrcnt(float percentage){
     return vertIsVariable;
 }
 
-void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable) {
+void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable, bool uniform) {
     vector<Eigen::Triplet<float>> coeffs;
     Eigen::VectorXf b[3];
     unsigned int n = vertices.size();
@@ -809,9 +809,10 @@ void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable) {
             int j = triangles[neighbors[l]];
             QVector3D &v_j = vertices[j];
 
-            float weight_i_j = 1;
+            float weight_i_j;
+            if (uniform) weight_i_j = 1;
+            else weight_i_j = getCotangentWeight(i, l, neighbors);
 
-            //float weight_i_j = getCotangentWeight(i, l, neighbors);
             sumWeight_i += weight_i_j;
             if (vertIsVariable[j]) {
                 isRowNull = false;

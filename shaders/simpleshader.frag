@@ -20,7 +20,7 @@ void main()
      int b = int(UV.y/(1/gridDivision));
 
      if (a % 2 == 0 && b % 2 != 0) myColor = vec3(UV.x, 0, UV.y);
-     else if (a % 2 != 0 && b % 2 == 0) myColor = vec3(UV.x, 0, UV.y);
+     //else if (a % 2 != 0 && b % 2 == 0) myColor = vec3(UV.x, 0, UV.y);
      else myColor = vec3(1, 1, 1);
     }
     else myColor = fragColor;
