@@ -28,7 +28,8 @@ void MainWindow::on_checkBoxFill_toggled(bool checked)
 void MainWindow::on_action_Open_triggered()
 {
 	QString filename = QFileDialog::getOpenFileName(this, tr("Open PLY"), ".", tr("*.ply"));
-
+    ui->openGLWidget->makeCurrent();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	ui->openGLWidget->loadMesh(filename);
 }
 
@@ -96,6 +97,13 @@ void MainWindow::on_DispGeometry_released(){
     ui->openGLWidget->mesh.DisplayParametrization();
     ui->openGLWidget->makeCurrent();
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    ui->openGLWidget->update();
+}
+
+void MainWindow::on_ResetColors_released(){
+    ui->openGLWidget->mesh.ResetColors();
+    ui->openGLWidget->makeCurrent();
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     ui->openGLWidget->update();
 }
 

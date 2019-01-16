@@ -342,6 +342,13 @@
          </spacer>
         </item>
         <item>
+         <widget class="QPushButton" name="ResetColors">
+          <property name="text">
+           <string>Reset Colors</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="Reload">
           <property name="text">
            <string>Reload</string>

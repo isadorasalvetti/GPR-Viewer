@@ -43,6 +43,7 @@ private slots:
     void on_DHMapButton_released();
     void on_DispGeometry_released();
 
+    void on_ResetColors_released();
     void on_Reload_released();
 
 private:

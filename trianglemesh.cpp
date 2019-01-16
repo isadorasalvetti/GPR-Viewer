@@ -118,7 +118,7 @@ void TriangleMesh::buildCube()
                     7, 3, 0, 0, 4, 7,
                     1, 2, 6, 6, 5, 1,
                     0, 1, 4, 5, 4, 1,
-//                    2, 3, 7, 7, 6, 2
+                    2, 3, 7, 7, 6, 2
                   };
 
 	int i;
@@ -323,6 +323,12 @@ void TriangleMesh::Reset(){
     vertices = backupVertices;
     uvsComputed = false;
     updateVertices();
+}
+
+void TriangleMesh::ResetColors(){
+    vector<QVector3D> colors (vertices.size(), QVector3D(1, 1, 1));
+    colors = buildReplicatedColors(colors);
+    updateColors(colors);
 }
 
 //*****************************************
@@ -899,8 +905,11 @@ void TriangleMesh::CreateMapBorder(vector<int> borderVertices){
     double angle = (2*PI)/size;
 
     for (int i = 0; i < size; i++){
-         QVector3D p1 = QVector3D(sin(angle*i)/2+0.5f, 0, cos(angle*i)/2+0.5f);
-         vertices[borderVertices[i]] = p1;
+        float u = sin(angle*i);
+        float v = cos(angle*i);
+        float denon = max(abs(u), abs(v))/2;
+        QVector3D p1 = QVector3D(u, 0, v)/denon + QVector3D(0.5f, 0, 0.5f);
+        vertices[borderVertices[i]] = p1;
     }
 }
 

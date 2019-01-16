@@ -52,6 +52,7 @@ public:
     void Parametrization();
     void DisplayParametrization();
     void Reset();
+    void ResetColors();
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);

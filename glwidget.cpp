@@ -48,7 +48,7 @@ void GLWidget::initializeGL()
 			QApplication::quit();
 	}
 
-    glClearColor(0.9f, 0.9f, 0.9f, 0.9f);
+    glClearColor(0.8f, 0.6f, 0.8f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 }
 
