@@ -7,6 +7,7 @@
 #include <QOpenGLFunctions>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
+#include <QOpenGLWidget>
 #include <QOpenGLShaderProgram>
 
 #include "smoothingmatrix.h"
@@ -46,9 +47,11 @@ public:
     void DisplayMeanCurvature();
     void IteractiveSmoothing(int nSteps, bool uw);
     void BiIteractiveSmoothing(int nSteps, bool uw);
-    void GlobalSmoothing(float percent);
+    void GlobalSmoothing(float percent, bool type);
     void DetMagnification(QVector3D l);
     void Parametrization();
+    void DisplayParametrization();
+    void Reset();
 
 private:
 	void buildReplicatedVertices(vector<QVector3D> &replicatedVertices, vector<QVector3D> &normals, vector<unsigned int> &perFaceTriangles);
@@ -61,9 +64,15 @@ private:
     void updateVertices();
 
     vector<QVector3D> vertices;
+    vector<QVector3D> backupVertices;
+
+    vector<QVector3D> uvs;
+    bool uvsComputed = false;
 	vector<int> triangles;
     vector<QVector2D> textureCoordinates;
-    pair<QVector3D, QVector3D> boundingBox;
+
+    pair<QVector3D, QVector3D> boundingBox; 
+    vector<bool> isInBorder;
 
     void buildCornerTable();
     vector<int> getBoundary();
@@ -79,8 +88,10 @@ private:
     void BiIteractiveSmoothingStep(bool weight);
 
     vector<bool> getCutOffVertices(float validHeight);
+    vector<bool> getCutOffVerticesPrcnt(float percentage);
     void buildSmoothingMatrix(QVector3D vertIsVariable);
     void solveSparseSmoothing(vector<bool> vertIsVariable);
+    void solveSparseSmoothingCactus(vector<bool> vertIsVariable);
 
     void getNoise(float l1, float l2, float l3);
     vector<QVector3D> SmoothingSteps(vector<QVector3D> &toSmooth, int n);

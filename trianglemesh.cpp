@@ -55,18 +55,25 @@ pair<float, float> getBoundingBoxHeight(vector<QVector3D> &verts){
     return pair<float, float>(y0, y1);
 }
 
+const float eps = 0.000001;
+const float cotan_max = cos( eps ) / sin( eps );
+
 float cosineToCotangent(float cos){
    float bt = sqrt(1.0f - cos * cos);
-   if (bt < 0.0001f and bt > -0.0001f) return 0;
+   //if (bt < 0.0001f and bt > -0.0001f) return 0;
    return abs(cos / bt);
 }
 
 float getCotangent(QVector3D va, QVector3D vb){
     va.normalize(); vb.normalize();
-    float cos = QVector3D::dotProduct(va, vb);
     float sin = (QVector3D::crossProduct(va, vb)).length();
-    if (sin < 0.0000001) return 0;
-    else return cos/sin;
+    if (abs(sin) < 0.000001) return 0;
+    float cos = QVector3D::dotProduct(va, vb);
+
+    float cot = cos/sin;
+    if (cot < 0) cot = -cot;
+    cot = max(cot, -cotan_max);
+    return cot;
 }
 
 //*****************************************
@@ -127,7 +134,7 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program){
     vector<QVector3D> replicatedVertices, normals, colors;
 	vector<unsigned int> perFaceTriangles;
 
-    colors.resize(vertices.size(), QVector3D(0.5, 0.5, 0.5));
+    colors.resize(vertices.size(), QVector3D(1, 1, 1));
 
     buildReplicatedVertices(replicatedVertices, normals, perFaceTriangles);
     buildCornerTable();
@@ -190,6 +197,9 @@ bool TriangleMesh::init(QOpenGLShaderProgram *program){
 	eboTriangles.setUsagePattern(QOpenGLBuffer::StaticDraw);
 
     fillVBOs(replicatedVertices, normals, perFaceTriangles);
+    vector<QVector3D> repColors = buildReplicatedColors(colors);
+    updateColors(repColors);
+    backupVertices = vertices;
 
 	vao.release();
 	program->release();
@@ -253,11 +263,12 @@ void TriangleMesh::BiIteractiveSmoothing(int nSteps, bool uw){
     }
 }
 
-void TriangleMesh::GlobalSmoothing(float percent){
+void TriangleMesh::GlobalSmoothing(float percent, bool type){
     pair<float, float> bBoxHt = getBoundingBoxHeight(vertices);
     float diff = bBoxHt.second - bBoxHt.first;
     float cutOffHeight = bBoxHt.first + diff*percent;
-    solveSparseSmoothing(getCutOffVertices(cutOffHeight));
+    if (type) solveSparseSmoothing(getCutOffVerticesPrcnt(percent));
+    else solveSparseSmoothing(getCutOffVertices(cutOffHeight));
     updateVertices();
 }
 
@@ -276,15 +287,42 @@ vector<bool> convertToBool(vector<int>constVerts, int size){
 void TriangleMesh::Parametrization(){
     pg->bind();
     pg->setUniformValue("useUV", true);
-    vector<QVector3D> oldVertices = vertices;
-    vector<int> borderVertices = getBoundary();
-    CreateMapBorder(borderVertices);
-    solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
+    if (!uvsComputed){
+        vector<QVector3D> saveVertices = vertices;
+        vector<int> borderVertices = getBoundary();
+        CreateMapBorder(borderVertices);
+        solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
+        uvsComputed = true;
+        uvs = vertices;
+        vertices = backupVertices;
+    }
+    vector<QVector2D> newUVs = buildReplicatedUVs(uvs);
+    updateUVs(newUVs);
+    pg->release();
+}
+
+void TriangleMesh::DisplayParametrization(){
+    pg->bind();
+    pg->setUniformValue("useUV", true);
+    if (!uvsComputed){
+        vector<int> borderVertices = getBoundary();
+        CreateMapBorder(borderVertices);
+        solveSparseSmoothing(convertToBool(borderVertices, vertices.size()));
+        uvsComputed = true;
+        uvs = vertices;
+    }
+    else vertices = uvs;
+    updateVertices();
     vector<QVector2D> newUVs = buildReplicatedUVs(vertices);
     updateUVs(newUVs);
-    //updateVertices();
-    vertices = oldVertices;
     pg->release();
+}
+
+
+void TriangleMesh::Reset(){
+    vertices = backupVertices;
+    uvsComputed = false;
+    updateVertices();
 }
 
 //*****************************************
@@ -359,10 +397,6 @@ void TriangleMesh::fillVBOs(vector<QVector3D> &replicatedVertices, vector<QVecto
     vboNormals.bind();
     vboNormals.allocate(&normals[0], 3 * sizeof(float) * normals.size());
     vboNormals.release();
-
-    vboColors.bind();
-    vboColors.allocate(&normals[0], 3 * sizeof(float) * normals.size());
-    vboColors.release();
 
 	eboTriangles.bind();
 	eboTriangles.allocate(&perFaceTriangles[0], sizeof(int) * perFaceTriangles.size());
@@ -449,9 +483,11 @@ void TriangleMesh::buildCornerTable(){
 
 vector<int> TriangleMesh::getBoundary(){
     list<int> singleCorners;
+    isInBorder.resize(vertices.size(), false);
     for (int i=0; i< cornersTable.size(); i++){
         if (cornersTable[i] == -1){ //found first border vertex.
             singleCorners.push_back(i);
+            isInBorder[i] = true;
         }
     }
 
@@ -482,11 +518,21 @@ vector<int> TriangleMesh::getBoundary(){
                 break;
             }
         }
+
+//    //Color verification:
+//    vector<QVector3D> colors (vertices.size(), QVector3D(0, 0, 0));
+//    for (int i =0; i< borderEdge.size(); i++){
+//        colors[borderEdge[i]] = QVector3D(1, 0, 0);
+//        vector<QVector3D> rColors = buildReplicatedColors(colors);
+//        updateColors(rColors);
+//        gl->update();
+//    }
     return borderEdge;
 }
 
 vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
     vector<int> neighboors;
+    vector<int> temp;
 
     //get corner of this vertex
     int nextCorner = next(cornerVertex[vert]);
@@ -503,8 +549,10 @@ vector<int> TriangleMesh::GetVertexNeighboors(unsigned int vert){
                 nextCorner = previous(nextCorner);
                 nextCorner = cornersTable[nextCorner];
                 if (nextCorner < 0) break;
-                neighboors.push_back(nextCorner);
+                temp.push_back(nextCorner);
             }
+            for (int i = temp.size()-1; i >= 0; i--)
+                neighboors.push_back(temp[i]);
             break;
         }
     if (nextCorner == next(cornerVertex[vert])) break; //corner already in neighboors, end of loop
@@ -619,14 +667,19 @@ QVector3D TriangleMesh::ComputeLaplacian(int v, bool uniform){
 float TriangleMesh::getCotangentWeight(int v, int i, vector<int> &neighborhood){
     int nSize = neighborhood.size();
     QVector3D vn = vertices[v]; QVector3D vi = vertices[triangles[neighborhood[i]]];
-    int naInd = neighborhood[getPrev(i, nSize)]; int nbInd = neighborhood[getNext(i, nSize)];
-    QVector3D ka = vertices[triangles[neighborhood[getPrev(i, nSize)]]];
-    QVector3D kb = vertices[triangles[neighborhood[getNext(i, nSize)]]];
+    int indexKa = triangles[neighborhood[getPrev(i, nSize)]];
+    int indexKb = triangles[neighborhood[getNext(i, nSize)]];
+
+    QVector3D ka = vertices[indexKa];
+    QVector3D kb = vertices[indexKb];
     QVector3D vnka = (ka - vn); QVector3D vnkb = (kb - vn);
     QVector3D vika = (ka - vi); QVector3D vikb = (kb - vi);
+    float w1 = getCotangent(vnka, vika);
+    float w2 = getCotangent(vnkb, vikb);
 
-   return (getCotangent(vnka, vika)
-                 + getCotangent(vnkb, vikb))/2;
+    //cout << "Weights " << w1 << ", " << w2 << endl;
+
+   return (w1 + w2)/2;
 }
 
 void TriangleMesh::IteractiveSmoothingStep(bool weight){
@@ -708,6 +761,18 @@ vector<bool> TriangleMesh::getCutOffVertices(float validHeight){
     return vertIsVariable;
 }
 
+vector<bool> TriangleMesh::getCutOffVerticesPrcnt(float percentage){
+    // build entries
+    unsigned int n = vertices.size();
+    vector<bool> vertIsVariable(n, false);
+    for (int i = 0; i < n; i++) {
+        float random = rand()/(float)RAND_MAX;
+        vertIsVariable[i] = random > percentage;
+    }
+    cout << percentage << "of vertices set to fixed." << endl;
+    return vertIsVariable;
+}
+
 void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable) {
     vector<Eigen::Triplet<float>> coeffs;
     Eigen::VectorXf b[3];
@@ -738,9 +803,9 @@ void TriangleMesh::solveSparseSmoothing(vector<bool> vertIsVariable) {
             int j = triangles[neighbors[l]];
             QVector3D &v_j = vertices[j];
 
-            float weight_i_j = getCotangentWeight(i, l, neighbors);
+            float weight_i_j = 1;
 
-
+            //float weight_i_j = getCotangentWeight(i, l, neighbors);
             sumWeight_i += weight_i_j;
             if (vertIsVariable[j]) {
                 isRowNull = false;
